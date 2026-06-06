@@ -49,6 +49,13 @@
       "tanggal": "2026-06-05",
       "jam": "23:20",
       "keterangan": "motor mogok"
+    },
+    {
+      "id": "late_1780763690236_5",
+      "student_id": "1023456789",
+      "tanggal": "2026-06-06",
+      "jam": "23:20",
+      "keterangan": "ban bocor"
     }
   ]
 }
