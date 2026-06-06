@@ -541,6 +541,7 @@ function switchMenu(menuName) {
   } else if (menuName === 'laporan') {
     titleEl.textContent = 'Unduh Laporan Bulanan';
     subtitleEl.textContent = 'Ekspor hasil rekapitulasi data siswa ke berkas Microsoft Excel';
+    populateClassSelect('laporan-absen-kelas');
   } else if (menuName === 'github') {
     titleEl.textContent = 'Integrasi Awan GitHub';
     subtitleEl.textContent = 'Konfigurasi akun dan repositori database online';
@@ -1347,10 +1348,16 @@ function renderRekapTerlambat(bulan, tahun, kelas, search) {
 function downloadLaporanAbsensi() {
   const bulan = document.getElementById('laporan-absen-bulan').value;
   const tahun = document.getElementById('laporan-absen-tahun').value;
+  const kelas = document.getElementById('laporan-absen-kelas').value;
   const labelBulan = document.getElementById('laporan-absen-bulan').options[document.getElementById('laporan-absen-bulan').selectedIndex].text;
 
-  if (state.students.length === 0) {
-    showToast('Data siswa masih kosong. Tidak ada data untuk diekspor.', 'warning');
+  let filteredStudents = state.students;
+  if (kelas) {
+    filteredStudents = filteredStudents.filter(s => s.kelas === kelas);
+  }
+
+  if (filteredStudents.length === 0) {
+    showToast(kelas ? `Data siswa kelas ${kelas} masih kosong.` : 'Data siswa masih kosong. Tidak ada data untuk diekspor.', 'warning');
     return;
   }
 
@@ -1358,10 +1365,11 @@ function downloadLaporanAbsensi() {
 
   try {
     const prefix = `${tahun}-${bulan}-`;
-    const monthAtt = state.attendance.filter(a => a.tanggal.startsWith(prefix));
+    const studentIds = new Set(filteredStudents.map(s => s.id));
+    const monthAtt = state.attendance.filter(a => a.tanggal.startsWith(prefix) && studentIds.has(a.student_id));
 
     // 1. Sheet 1: Rekapitulasi Akumulasi Bulanan
-    const rekapData = state.students.map((std, idx) => {
+    const rekapData = filteredStudents.map((std, idx) => {
       const studentAtt = monthAtt.filter(a => a.student_id === std.id);
       let hadir = 0, sakit = 0, izin = 0, alpha = 0;
       studentAtt.forEach(a => {
@@ -1411,7 +1419,8 @@ function downloadLaporanAbsensi() {
       XLSX.utils.book_append_sheet(wb, wsLog, 'Rincian Absensi Harian');
     }
 
-    XLSX.writeFile(wb, `Laporan_Absensi_Siswa_${labelBulan}_${tahun}.xlsx`);
+    const fileKelasSuffix = kelas ? `_${kelas.replace(/\s+/g, '_')}` : '_Semua_Kelas';
+    XLSX.writeFile(wb, `Laporan_Absensi_Siswa${fileKelasSuffix}_${labelBulan}_${tahun}.xlsx`);
     showToast('Laporan absensi berhasil diunduh!', 'success');
   } catch (error) {
     showToast(`Gagal mengekspor laporan: ${error.message}`, 'error');
@@ -1436,7 +1445,21 @@ function downloadLaporanTerlambat() {
     const prefix = `${tahun}-${bulan}-`;
     const monthLates = state.lateLogs.filter(l => l.tanggal.startsWith(prefix));
 
-    // 1. Sheet 1: Rekap Frekuensi Terlambat
+    // 1. Sheet 1: Rincian Log Keterlambatan (dengan Tanggal, Jam, Keterangan)
+    const logData = monthLates.map((log, idx) => {
+      const std = state.students.find(s => s.id === log.student_id) || { nama: 'Siswa Terhapus', kelas: '-', nisn: '-' };
+      return {
+        'No': idx + 1,
+        'Tanggal': formatLocalDate(log.tanggal),
+        'Nama Siswa': std.nama,
+        'Kelas': std.kelas,
+        'NISN': std.nisn,
+        'Jam': log.jam,
+        'Keterangan': log.keterangan || '-'
+      };
+    }).sort((a, b) => a.Tanggal.localeCompare(b.Tanggal));
+
+    // 2. Sheet 2: Rekap Frekuensi Terlambat
     const rekapData = state.students.map((std, idx) => {
       const freq = monthLates.filter(l => l.student_id === std.id).length;
       return {
@@ -1446,23 +1469,9 @@ function downloadLaporanTerlambat() {
         'NISN': std.nisn,
         'Frekuensi Terlambat (Kali)': freq
       };
-    }).filter(row => row['Frekuensi Terlambat (Kali)'] > 0); // Only show late students
+    }).filter(row => row['Frekuensi Terlambat (Kali)'] > 0);
 
-    // 2. Sheet 2: Log Rincian Jam & Alasan
-    const logData = monthLates.map((log, idx) => {
-      const std = state.students.find(s => s.id === log.student_id) || { nama: 'Siswa Terhapus', kelas: '-', nisn: '-' };
-      return {
-        'No': idx + 1,
-        'Tanggal': formatLocalDate(log.tanggal),
-        'Jam Datang': log.jam,
-        'Nama Siswa': std.nama,
-        'Kelas': std.kelas,
-        'NISN': std.nisn,
-        'Alasan / Keterangan': log.keterangan || '-'
-      };
-    }).sort((a, b) => a.Tanggal.localeCompare(b.Tanggal));
-
-    if (rekapData.length === 0 && logData.length === 0) {
+    if (logData.length === 0 && rekapData.length === 0) {
       showToast(`Tidak ada catatan siswa terlambat pada bulan ${labelBulan} ${tahun}. Laporan kosong.`, 'warning');
       toggleLoader(false);
       return;
@@ -1470,13 +1479,13 @@ function downloadLaporanTerlambat() {
 
     const wb = XLSX.utils.book_new();
     
-    const wsRekap = XLSX.utils.json_to_sheet(rekapData);
-    XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekap Frekuensi Terlambat');
-    
     if (logData.length > 0) {
       const wsLog = XLSX.utils.json_to_sheet(logData);
-      XLSX.utils.book_append_sheet(wb, wsLog, 'Rincian Log Keterlambatan');
+      XLSX.utils.book_append_sheet(wb, wsLog, 'Rincian Siswa Terlambat');
     }
+
+    const wsRekap = XLSX.utils.json_to_sheet(rekapData);
+    XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekap Frekuensi Terlambat');
 
     XLSX.writeFile(wb, `Laporan_Keterlambatan_Siswa_${labelBulan}_${tahun}.xlsx`);
     showToast('Laporan keterlambatan berhasil diunduh!', 'success');
