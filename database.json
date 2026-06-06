@@ -1,5 +1,24 @@
 {
-  "students": [],
+  "students": [
+    {
+      "id": "1023456789",
+      "nama": "Budi Santoso",
+      "nisn": "1023456789",
+      "kelas": "VII"
+    },
+    {
+      "id": "1098765432",
+      "nama": "Siti Rahma",
+      "nisn": "1098765432",
+      "kelas": "VII"
+    },
+    {
+      "id": "1054321678",
+      "nama": "Andi Wijaya",
+      "nisn": "1054321678",
+      "kelas": "VII"
+    }
+  ],
   "attendance": [],
   "lateLogs": [],
   "violations": []
