@@ -62,6 +62,16 @@ async function initDb() {
       keterangan TEXT NOT NULL,
       FOREIGN KEY(siswa_id) REFERENCES siswa(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS izin_pulang (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      siswa_id INTEGER NOT NULL,
+      tanggal TEXT NOT NULL, -- Format: YYYY-MM-DD
+      jam TEXT NOT NULL,     -- Format: HH:MM
+      keterangan TEXT NOT NULL,
+      guru_piket TEXT NOT NULL,
+      FOREIGN KEY(siswa_id) REFERENCES siswa(id) ON DELETE CASCADE
+    );
   `);
 
   console.log(`Database initialized at ${dbPath}`);
@@ -365,6 +375,68 @@ app.delete('/api/pelanggaran/:id', async (req, res) => {
   }
 });
 
+// Get student izin pulang records
+app.get('/api/izin-pulang', async (req, res) => {
+  try {
+    const { tanggal, kelas, bulan, tahun } = req.query;
+    let query = `
+      SELECT ip.id, ip.tanggal, ip.jam, ip.keterangan, ip.guru_piket, ip.siswa_id, s.nama, s.kelas, s.nisn 
+      FROM izin_pulang ip
+      JOIN siswa s ON ip.siswa_id = s.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (tanggal) {
+      query += ' AND ip.tanggal = ?';
+      params.push(tanggal);
+    }
+    if (kelas) {
+      query += ' AND s.kelas = ?';
+      params.push(kelas);
+    }
+    if (bulan && tahun) {
+      query += ' AND ip.tanggal LIKE ?';
+      params.push(`${tahun}-${bulan.padStart(2, '0')}-%`);
+    }
+
+    query += ' ORDER BY ip.tanggal DESC, ip.jam DESC, s.nama ASC';
+    const data = await db.all(query, params);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save a student izin pulang record
+app.post('/api/izin-pulang', async (req, res) => {
+  const { siswa_id, tanggal, jam, keterangan, guru_piket } = req.body;
+  if (!siswa_id || !tanggal || !jam || !keterangan || !guru_piket) {
+    return res.status(400).json({ error: 'siswa_id, tanggal, jam, keterangan, dan guru_piket wajib diisi' });
+  }
+
+  try {
+    const result = await db.run(
+      'INSERT INTO izin_pulang (siswa_id, tanggal, jam, keterangan, guru_piket) VALUES (?, ?, ?, ?, ?)',
+      [siswa_id, tanggal, jam, keterangan, guru_piket]
+    );
+    res.json({ success: true, id: result.lastID, message: 'Data izin pulang berhasil dicatat' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a student izin pulang record
+app.delete('/api/izin-pulang/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.run('DELETE FROM izin_pulang WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Data izin pulang berhasil dihapus' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 7. Get recap dashboard data (general summary & today stats)
 app.get('/api/dashboard-stats', async (req, res) => {
   try {
@@ -400,6 +472,12 @@ app.get('/api/dashboard-stats', async (req, res) => {
     // Today's violations
     const { totalPelanggaranHariIni } = await db.get(
       'SELECT COUNT(*) as totalPelanggaranHariIni FROM pelanggaran WHERE tanggal = ?',
+      [today]
+    );
+
+    // Today's izin pulang
+    const { totalIzinPulangHariIni } = await db.get(
+      'SELECT COUNT(*) as totalIzinPulangHariIni FROM izin_pulang WHERE tanggal = ?',
       [today]
     );
 
@@ -445,6 +523,7 @@ app.get('/api/dashboard-stats', async (req, res) => {
       todayAbsensi,
       totalTerlambatHariIni: totalTerlambatHariIni || 0,
       totalPelanggaranHariIni: totalPelanggaranHariIni || 0,
+      totalIzinPulangHariIni: totalIzinPulangHariIni || 0,
       monthlySummary: monthlySummary.reverse(),
       monthlyLateSummary: monthlyLateSummary.reverse(),
       topLateStudents

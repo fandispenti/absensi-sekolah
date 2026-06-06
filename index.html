@@ -48,6 +48,10 @@
           <i data-lucide="shield-alert"></i>
           <span>Catatan Pelanggaran</span>
         </button>
+        <button class="menu-item" id="btn-menu-izin-pulang" onclick="switchMenu('izin-pulang')">
+          <i data-lucide="log-out"></i>
+          <span>Izin Pulang Siswa</span>
+        </button>
         <button class="menu-item" id="btn-menu-rekap" onclick="switchMenu('rekap')">
           <i data-lucide="clipboard-list"></i>
           <span>Rekap Data</span>
@@ -70,6 +74,10 @@
             <button class="submenu-item" id="btn-submenu-laporan-pelanggaran" onclick="switchLaporanSubmenu('pelanggaran')">
               <i data-lucide="shield-alert"></i>
               <span>Laporan Pelanggaran</span>
+            </button>
+            <button class="submenu-item" id="btn-submenu-laporan-izin-pulang" onclick="switchLaporanSubmenu('izin-pulang')">
+              <i data-lucide="log-out"></i>
+              <span>Laporan Izin Pulang</span>
             </button>
           </div>
         </div>
@@ -583,6 +591,100 @@
           </div>
         </section>
 
+        <!-- ================= SISWA IZIN PULANG VIEW ================= -->
+        <section id="view-izin-pulang" class="content-view">
+          <div class="row">
+            <!-- Form Input Izin Pulang -->
+            <div class="col-md-5">
+              <div class="dashboard-card">
+                <div class="card-header border-bottom">
+                  <h2>Catat Siswa Izin Pulang</h2>
+                </div>
+                <div class="card-body">
+                  <form id="form-izin-pulang" onsubmit="handleIzinPulangSubmit(event)">
+                    
+                    <div class="form-group mb-3">
+                      <label for="izin-pulang-siswa-select">Pilih Siswa <span class="required">*</span></label>
+                      <div class="searchable-select-container">
+                        <input type="text" id="izin-pulang-search-input" class="form-input" placeholder="Cari nama atau NISN siswa..." onfocus="showIzinPulangStudentDropdown()" onkeyup="filterIzinPulangStudentDropdown()">
+                        <div class="select-dropdown-list" id="izin-pulang-dropdown-list" style="display: none;">
+                          <!-- Populated by JS -->
+                        </div>
+                        <input type="hidden" id="izin-pulang-siswa-id" required>
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                      <label for="izin-pulang-kelas-display">Kelas</label>
+                      <input type="text" id="izin-pulang-kelas-display" class="form-input" readonly placeholder="Terisi otomatis..." style="background: rgba(255,255,255,0.05)">
+                    </div>
+
+                    <div class="row">
+                      <div class="col-6">
+                        <div class="form-group mb-3">
+                          <label for="izin-pulang-tanggal">Tanggal <span class="required">*</span></label>
+                          <input type="date" id="izin-pulang-tanggal" class="form-input" required>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="form-group mb-3">
+                          <label for="izin-pulang-jam">Jam Pulang <span class="required">*</span></label>
+                          <input type="time" id="izin-pulang-jam" class="form-input" required>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                      <label for="izin-pulang-keterangan">Keterangan / Alasan Izin Pulang <span class="required">*</span></label>
+                      <textarea id="izin-pulang-keterangan" class="form-input" rows="3" placeholder="Contoh: Sakit demam di sekolah, Ada acara keluarga mendadak, dll." required></textarea>
+                    </div>
+
+                    <div class="form-group mb-4">
+                      <label for="izin-pulang-guru-piket">Guru Piket <span class="required">*</span></label>
+                      <input type="text" id="izin-pulang-guru-piket" class="form-input" placeholder="Nama Guru Piket yang mengizinkan" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-info w-100 btn-lg" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border: none;">
+                      <i data-lucide="log-out"></i> Catat Izin Pulang
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- List Recent Izin Pulang Logs -->
+            <div class="col-md-7">
+              <div class="dashboard-card">
+                <div class="card-header border-bottom d-flex justify-between align-center">
+                  <h2>Log Siswa Izin Pulang Hari Ini</h2>
+                  <span class="badge badge-info" id="izin-pulang-today-badge" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8;">0 Siswa</span>
+                </div>
+                <div class="card-body">
+                  <div class="custom-table-container max-h-500">
+                    <table class="styled-table">
+                      <thead>
+                        <tr>
+                          <th>Nama</th>
+                          <th>Kelas</th>
+                          <th width="100">Jam</th>
+                          <th>Keterangan</th>
+                          <th>Guru Piket</th>
+                          <th width="80" class="text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody id="izin-pulang-today-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted">Belum ada siswa izin pulang yang dicatat hari ini.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- ================= REKAP DATA VIEW ================= -->
         <section id="view-rekap" class="content-view">
           <!-- Filter Rekap -->
@@ -653,6 +755,9 @@
             </button>
             <button class="tab-button" id="tab-rekap-pelanggaran" onclick="switchRekapTab('pelanggaran')">
               <i data-lucide="shield-alert" class="mr-1 v-middle"></i> Rekap Pelanggaran
+            </button>
+            <button class="tab-button" id="tab-rekap-izin-pulang" onclick="switchRekapTab('izin-pulang')">
+              <i data-lucide="log-out" class="mr-1 v-middle"></i> Rekap Izin Pulang
             </button>
           </div>
 
@@ -745,6 +850,35 @@
               </div>
             </div>
           </div>
+
+          <!-- Tab Content: Rekap Izin Pulang -->
+          <div class="dashboard-card card-full rekap-tab-content" id="rekap-tab-izin-pulang-content" style="display: none;">
+            <div class="card-header border-bottom">
+              <h2>Log Akumulasi Frekuensi Siswa Izin Pulang Per Periode</h2>
+              <p class="subtitle mt-1" id="rekap-izin-pulang-subtitle">Periode: - | Kelas: Semua Kelas</p>
+            </div>
+            <div class="card-body">
+              <div class="custom-table-container">
+                <table class="styled-table text-center-headers">
+                  <thead>
+                    <tr>
+                      <th width="60">No</th>
+                      <th class="text-left">Nama Siswa</th>
+                      <th width="100">Kelas</th>
+                      <th width="120">NISN</th>
+                      <th width="150" class="text-center text-info font-semibold">Frekuensi Izin Pulang</th>
+                      <th>Rincian Tanggal, Alasan & Guru Piket</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rekap-izin-pulang-table-body">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted">Belum ada data izin pulang untuk filter terpilih.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- ================= UNDUH LAPORAN VIEW ================= -->
@@ -759,6 +893,9 @@
             </button>
             <button class="tab-button" id="tab-laporan-pelanggaran" onclick="switchLaporanTab('pelanggaran')">
               <i data-lucide="shield-alert" class="mr-1 v-middle"></i> Laporan Pelanggaran
+            </button>
+            <button class="tab-button" id="tab-laporan-izin-pulang" onclick="switchLaporanTab('izin-pulang')">
+              <i data-lucide="log-out" class="mr-1 v-middle"></i> Laporan Izin Pulang
             </button>
           </div>
 
@@ -1105,6 +1242,122 @@
                 <button class="btn btn-danger btn-lg btn-icon-text w-100" onclick="downloadLaporanPelanggaran()">
                   <i data-lucide="file-spreadsheet"></i>
                   <span>Ekspor Laporan Pelanggaran (.xlsx)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 4: Laporan Izin Pulang -->
+          <div class="dashboard-card card-full laporan-tab-content" id="laporan-tab-izin-pulang-content" style="display: none;">
+            <div class="card-header border-bottom">
+              <div>
+                <h2>Laporan Periodik Siswa Izin Pulang</h2>
+                <p class="subtitle mt-1">Ekspor daftar rincian dan rekap izin pulang siswa bulanan, semester, atau tahunan ke berkas Excel (.xlsx)</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <!-- Column 1: Jenis Periode -->
+                <div class="col-md-4 mb-3">
+                  <label for="laporan-izin-pulang-period-type" class="form-label font-semibold">Jenis Periode</label>
+                  <select id="laporan-izin-pulang-period-type" class="form-select" onchange="handleLaporanPeriodTypeChange('izin-pulang')">
+                    <option value="bulanan">Bulanan</option>
+                    <option value="semester">Per Semester</option>
+                    <option value="tahunan">Per Tahun</option>
+                  </select>
+                </div>
+
+                <!-- Column 2: Detail Waktu -->
+                <div class="col-md-4 mb-3">
+                  <div class="row">
+                    <div class="col-6" id="laporan-izin-pulang-bulan-container">
+                      <label for="laporan-izin-pulang-bulan" class="form-label font-semibold">Bulan</label>
+                      <select id="laporan-izin-pulang-bulan" class="form-select">
+                        <option value="01">Januari</option>
+                        <option value="02">Februari</option>
+                        <option value="03">Maret</option>
+                        <option value="04">April</option>
+                        <option value="05">Mei</option>
+                        <option value="06">Juni</option>
+                        <option value="07">Juli</option>
+                        <option value="08">Agustus</option>
+                        <option value="09">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                      </select>
+                    </div>
+                    <div class="col-6" id="laporan-izin-pulang-semester-container" style="display: none;">
+                      <label for="laporan-izin-pulang-semester" class="form-label font-semibold">Semester</label>
+                      <select id="laporan-izin-pulang-semester" class="form-select">
+                        <option value="genap">Semester Genap</option>
+                        <option value="ganjil">Semester Ganjil</option>
+                      </select>
+                    </div>
+                    <div class="col-6" id="laporan-izin-pulang-tahun-container">
+                      <label for="laporan-izin-pulang-tahun" class="form-label font-semibold">Tahun</label>
+                      <select id="laporan-izin-pulang-tahun" class="form-select">
+                        <option value="2026">2026</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Column 3: Scope -->
+                <div class="col-md-4 mb-3">
+                  <label class="form-label font-semibold mb-2 d-flex">Tingkat Laporan (Scope)</label>
+                  <div class="segmented-control" id="laporan-izin-pulang-scope-segmented">
+                    <button type="button" class="segment-button active" id="btn-seg-izin-pulang-semua" onclick="setLaporanScope('izin-pulang', 'semua')">Semua</button>
+                    <button type="button" class="segment-button" id="btn-seg-izin-pulang-kelas" onclick="setLaporanScope('izin-pulang', 'kelas')">Per Kelas</button>
+                    <button type="button" class="segment-button" id="btn-seg-izin-pulang-siswa" onclick="setLaporanScope('izin-pulang', 'siswa')">Per Siswa</button>
+                  </div>
+                  <input type="hidden" id="laporan-izin-pulang-scope" value="semua">
+                </div>
+              </div>
+
+              <!-- Dynamic Filter inputs for Izin Pulang -->
+              <div class="row mt-2">
+                <!-- Class filter container -->
+                <div class="col-12 mb-3" id="laporan-izin-pulang-kelas-container" style="display: none;">
+                  <label for="laporan-izin-pulang-kelas" class="form-label font-semibold">Pilih Kelas</label>
+                  <select id="laporan-izin-pulang-kelas" class="form-select">
+                    <!-- Populated dynamically -->
+                    <option value="">Pilih Kelas</option>
+                  </select>
+                </div>
+
+                <!-- Student filter container -->
+                <div class="col-12 mb-3" id="laporan-izin-pulang-siswa-container" style="display: none;">
+                  <label class="form-label font-semibold">Cari Siswa</label>
+                  <div class="search-box mb-2">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="laporan-izin-pulang-siswa-search" class="form-input" placeholder="Ketik nama, NISN, atau kelas untuk mencari..." onkeyup="searchStudentForLaporan('izin-pulang')">
+                  </div>
+                  <input type="hidden" id="laporan-izin-pulang-siswa-id">
+                  <div class="student-search-results-wrapper" id="laporan-izin-pulang-siswa-results-wrapper" style="display: none;">
+                    <div class="custom-table-container max-h-400">
+                      <table class="minimal-table">
+                        <thead>
+                          <tr>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>NISN</th>
+                            <th width="120" class="text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody id="laporan-izin-pulang-siswa-results-body">
+                          <!-- Populated dynamically -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-top pt-4 mt-2">
+                <button class="btn btn-info btn-lg btn-icon-text w-100" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border: none;" onclick="downloadLaporanIzinPulang()">
+                  <i data-lucide="file-spreadsheet"></i>
+                  <span>Ekspor Laporan Izin Pulang (.xlsx)</span>
                 </button>
               </div>
             </div>

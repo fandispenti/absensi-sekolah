@@ -8,6 +8,7 @@ let state = {
   attendance: [],   // Array of { id, student_id, tanggal, status, keterangan }
   lateLogs: [],     // Array of { id, student_id, tanggal, jam, keterangan }
   violations: [],   // Array of { id, student_id, tanggal, jam, keterangan }
+  izinPulang: [],   // Array of { id, student_id, tanggal, jam, keterangan, guru_piket }
   githubSettings: {
     token: '',
     repo: '',
@@ -53,6 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const violationDropdown = document.getElementById('pelanggaran-dropdown-list');
     if (violationContainer && !violationContainer.contains(e.target) && violationDropdown) {
       violationDropdown.style.display = 'none';
+    }
+
+    const izinPulangContainer = document.querySelector('#view-izin-pulang .searchable-select-container');
+    const izinPulangDropdown = document.getElementById('izin-pulang-dropdown-list');
+    if (izinPulangContainer && !izinPulangContainer.contains(e.target) && izinPulangDropdown) {
+      izinPulangDropdown.style.display = 'none';
     }
   });
 
@@ -134,6 +141,9 @@ function updateDateDisplay() {
   const dateInputPelanggaran = document.getElementById('pelanggaran-tanggal');
   if (dateInputPelanggaran) dateInputPelanggaran.value = todayISO;
 
+  const dateInputIzinPulang = document.getElementById('izin-pulang-tanggal');
+  if (dateInputIzinPulang) dateInputIzinPulang.value = todayISO;
+
   // Set default hours for late log
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, '0');
@@ -144,12 +154,16 @@ function updateDateDisplay() {
   const timeInputPelanggaran = document.getElementById('pelanggaran-jam');
   if (timeInputPelanggaran) timeInputPelanggaran.value = `${hours}:${minutes}`;
 
+  const timeInputIzinPulang = document.getElementById('izin-pulang-jam');
+  if (timeInputIzinPulang) timeInputIzinPulang.value = `${hours}:${minutes}`;
+
   // Populate recap years
   const yearSelects = [
     document.getElementById('rekap-tahun'),
     document.getElementById('laporan-absen-tahun'),
     document.getElementById('laporan-terlambat-tahun'),
-    document.getElementById('laporan-pelanggaran-tahun')
+    document.getElementById('laporan-pelanggaran-tahun'),
+    document.getElementById('laporan-izin-pulang-tahun')
   ];
   const currentYear = now.getFullYear();
   yearSelects.forEach(select => {
@@ -171,7 +185,8 @@ function updateDateDisplay() {
     document.getElementById('rekap-bulan'),
     document.getElementById('laporan-absen-bulan'),
     document.getElementById('laporan-terlambat-bulan'),
-    document.getElementById('laporan-pelanggaran-bulan')
+    document.getElementById('laporan-pelanggaran-bulan'),
+    document.getElementById('laporan-izin-pulang-bulan')
   ];
   monthSelects.forEach(select => {
     if (select) {
@@ -230,11 +245,12 @@ async function loadData() {
     // Load from Server SQLite API
     toggleLoader(true, 'Memuat data dari server sekolah...');
     try {
-      const [siswa, absensi, terlambat, pelanggaran] = await Promise.all([
+      const [siswa, absensi, terlambat, pelanggaran, izinPulang] = await Promise.all([
         fetch('/api/siswa').then(r => r.json()),
         fetch('/api/absensi').then(r => r.json()),
         fetch('/api/terlambat').then(r => r.json()),
-        fetch('/api/pelanggaran').then(r => r.json())
+        fetch('/api/pelanggaran').then(r => r.json()),
+        fetch('/api/izin-pulang').then(r => r.json())
       ]);
 
       // Map API schema to state arrays
@@ -269,6 +285,15 @@ async function loadData() {
         keterangan: p.keterangan
       }));
 
+      state.izinPulang = (izinPulang || []).map(ip => ({
+        id: String(ip.id),
+        student_id: String(ip.siswa_id),
+        tanggal: ip.tanggal,
+        jam: ip.jam,
+        keterangan: ip.keterangan,
+        guru_piket: ip.guru_piket
+      }));
+
       updateStorageExplanation();
       refreshAllUI();
     } catch (e) {
@@ -287,6 +312,7 @@ async function loadData() {
         state.attendance = parsed.attendance || [];
         state.lateLogs = parsed.lateLogs || [];
         state.violations = parsed.violations || [];
+        state.izinPulang = parsed.izinPulang || [];
       } catch (e) {
         console.error('Error parsing local DB', e);
         showToast('Gagal memuat database lokal, file rusak.', 'error');
@@ -302,7 +328,8 @@ function saveLocalState() {
     students: state.students,
     attendance: state.attendance,
     lateLogs: state.lateLogs,
-    violations: state.violations
+    violations: state.violations,
+    izinPulang: state.izinPulang
   };
   localStorage.setItem('schoolDb', JSON.stringify(dbData));
 }
@@ -558,6 +585,7 @@ async function syncPullFromGithub(silent = false) {
     state.attendance = parsedDb.attendance || [];
     state.lateLogs = parsedDb.lateLogs || [];
     state.violations = parsedDb.violations || [];
+    state.izinPulang = parsedDb.izinPulang || [];
 
     // Save copy locally
     saveLocalState();
@@ -607,7 +635,8 @@ async function syncPushToGithub(isNewFile = false) {
       students: state.students,
       attendance: state.attendance,
       lateLogs: state.lateLogs,
-      violations: state.violations
+      violations: state.violations,
+      izinPulang: state.izinPulang
     };
     
     const base64Content = btoa(unescape(encodeURIComponent(JSON.stringify(dbPayload, null, 2))));
@@ -732,6 +761,10 @@ function switchMenu(menuName) {
     titleEl.textContent = 'Catatan Pelanggaran Siswa';
     subtitleEl.textContent = 'Pencatatan rincian kejadian dan jenis pelanggaran aturan sekolah';
     renderViolationsToday();
+  } else if (menuName === 'izin-pulang') {
+    titleEl.textContent = 'Siswa Izin Pulang';
+    subtitleEl.textContent = 'Pencatatan jam dan keterangan siswa izin pulang sekolah';
+    renderIzinPulangToday();
   } else if (menuName === 'rekap') {
     titleEl.textContent = 'Rekapitulasi Data';
     subtitleEl.textContent = 'Rangkuman dan riwayat absensi & keterlambatan per bulan';
@@ -750,6 +783,10 @@ function switchMenu(menuName) {
   // Close modals or searchable dropdowns if any
   const lateDropdown = document.getElementById('terlambat-dropdown-list');
   if (lateDropdown) lateDropdown.style.display = 'none';
+  const violationDropdown = document.getElementById('pelanggaran-dropdown-list');
+  if (violationDropdown) violationDropdown.style.display = 'none';
+  const izinPulangDropdown = document.getElementById('izin-pulang-dropdown-list');
+  if (izinPulangDropdown) izinPulangDropdown.style.display = 'none';
 
   window.scrollTo(0, 0);
   lucide.createIcons();
@@ -762,6 +799,7 @@ function refreshAllUI() {
   if (state.currentView === 'absensi') loadAttendanceGrid();
   if (state.currentView === 'terlambat') renderLateLogsToday();
   if (state.currentView === 'pelanggaran') renderViolationsToday();
+  if (state.currentView === 'izin-pulang') renderIzinPulangToday();
   if (state.currentView === 'rekap') loadRekapData();
 }
 
@@ -1666,6 +1704,195 @@ async function deleteViolationLog(logId) {
 }
 
 // ==========================================================================
+// MENU: SISWA IZIN PULANG
+// ==========================================================================
+
+function showIzinPulangStudentDropdown() {
+  const list = document.getElementById('izin-pulang-dropdown-list');
+  list.innerHTML = '';
+  
+  if (state.students.length === 0) {
+    list.innerHTML = '<div class="dropdown-item text-muted">Belum ada data siswa. Impor dahulu.</div>';
+    list.style.display = 'block';
+    return;
+  }
+
+  filterIzinPulangStudentDropdown();
+  list.style.display = 'block';
+}
+
+function filterIzinPulangStudentDropdown() {
+  const query = document.getElementById('izin-pulang-search-input').value.toLowerCase().trim();
+  const list = document.getElementById('izin-pulang-dropdown-list');
+  list.innerHTML = '';
+
+  const filtered = state.students.filter(s => 
+    s.nama.toLowerCase().includes(query) || s.nisn.includes(query) || s.kelas.toLowerCase().includes(query)
+  ).slice(0, 8);
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="dropdown-item text-muted">Siswa tidak ditemukan</div>';
+    return;
+  }
+
+  filtered.forEach(std => {
+    const item = document.createElement('div');
+    item.className = 'dropdown-item';
+    item.innerHTML = `
+      <span class="item-nama font-semibold">${std.nama}</span>
+      <span class="item-kelas">${std.kelas}</span>
+    `;
+    item.onclick = () => selectStudentForIzinPulang(std);
+    list.appendChild(item);
+  });
+}
+
+function selectStudentForIzinPulang(student) {
+  document.getElementById('izin-pulang-search-input').value = student.nama;
+  document.getElementById('izin-pulang-siswa-id').value = student.id;
+  document.getElementById('izin-pulang-kelas-display').value = student.kelas;
+  document.getElementById('izin-pulang-dropdown-list').style.display = 'none';
+}
+
+async function handleIzinPulangSubmit(event) {
+  event.preventDefault();
+
+  const studentId = document.getElementById('izin-pulang-siswa-id').value;
+  const tanggal = document.getElementById('izin-pulang-tanggal').value;
+  const jam = document.getElementById('izin-pulang-jam').value;
+  const keterangan = document.getElementById('izin-pulang-keterangan').value.trim();
+  const guruPiket = document.getElementById('izin-pulang-guru-piket').value.trim();
+
+  if (!studentId || !tanggal || !jam || !keterangan || !guruPiket) {
+    showToast('Harap isi semua kolom wajib untuk izin pulang!', 'warning');
+    return;
+  }
+
+  toggleLoader(true, 'Mencatat izin pulang...');
+  try {
+    if (state.storageMode === 'server') {
+      const payload = {
+        siswa_id: studentId,
+        tanggal,
+        jam,
+        keterangan,
+        guru_piket: guruPiket
+      };
+
+      const res = await fetch('/api/izin-pulang', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(r => r.json());
+      
+      if (res.error) throw new Error(res.error);
+      
+      // Reset Form except date
+      document.getElementById('izin-pulang-siswa-id').value = '';
+      document.getElementById('izin-pulang-search-input').value = '';
+      document.getElementById('izin-pulang-kelas-display').value = '';
+      document.getElementById('izin-pulang-keterangan').value = '';
+      document.getElementById('izin-pulang-guru-piket').value = '';
+      
+      await loadData();
+      showToast('Izin pulang berhasil dicatat!', 'success');
+    } else {
+      const newIzin = {
+        id: `izin_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        student_id: studentId,
+        tanggal,
+        jam,
+        keterangan,
+        guru_piket: guruPiket
+      };
+
+      state.izinPulang = state.izinPulang || [];
+      state.izinPulang.push(newIzin);
+      await persistData();
+
+      // Reset Form except date
+      document.getElementById('izin-pulang-siswa-id').value = '';
+      document.getElementById('izin-pulang-search-input').value = '';
+      document.getElementById('izin-pulang-kelas-display').value = '';
+      document.getElementById('izin-pulang-keterangan').value = '';
+      document.getElementById('izin-pulang-guru-piket').value = '';
+      
+      // Refresh list
+      renderIzinPulangToday();
+      showToast('Izin pulang berhasil dicatat!', 'success');
+    }
+  } catch (error) {
+    showToast(`Gagal mencatat: ${error.message}`, 'error');
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+function renderIzinPulangToday() {
+  const tanggal = document.getElementById('izin-pulang-tanggal').value;
+  const body = document.getElementById('izin-pulang-today-table-body');
+  const badge = document.getElementById('izin-pulang-today-badge');
+
+  if (!body) return;
+
+  body.innerHTML = '';
+  
+  if (!tanggal) return;
+
+  state.izinPulang = state.izinPulang || [];
+  const todayIzin = state.izinPulang.filter(ip => ip.tanggal === tanggal);
+  if (badge) badge.textContent = `${todayIzin.length} Siswa`;
+
+  if (todayIzin.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Belum ada siswa izin pulang dicatat pada tanggal ini.</td></tr>`;
+    return;
+  }
+
+  todayIzin.forEach((log) => {
+    const student = state.students.find(s => s.id === log.student_id) || { nama: 'Siswa Terhapus', kelas: '-', nisn: '-' };
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="font-semibold">${student.nama}</td>
+      <td><span class="badge badge-success" style="background-color: rgba(14,165,233,0.15); color: #38bdf8;">${student.kelas}</span></td>
+      <td class="text-info font-semibold"><i data-lucide="clock" class="v-middle mr-1" style="width:14px;height:14px;"></i>${log.jam}</td>
+      <td>${log.keterangan}</td>
+      <td class="font-semibold">${log.guru_piket}</td>
+      <td class="text-center">
+        <button class="btn btn-danger btn-sm" onclick="deleteIzinPulangLog('${log.id}')" title="Hapus Catatan"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+  lucide.createIcons();
+}
+
+async function deleteIzinPulangLog(logId) {
+  if (!confirm('Hapus catatan izin pulang ini?')) return;
+
+  toggleLoader(true, 'Menghapus catatan...');
+  try {
+    if (state.storageMode === 'server') {
+      const res = await fetch(`/api/izin-pulang/${logId}`, {
+        method: 'DELETE'
+      }).then(r => r.json());
+      
+      if (res.error) throw new Error(res.error);
+      await loadData();
+      showToast('Catatan izin pulang dihapus.', 'success');
+    } else {
+      state.izinPulang = state.izinPulang.filter(ip => ip.id !== logId);
+      await persistData();
+      renderIzinPulangToday();
+      showToast('Catatan izin pulang dihapus.', 'success');
+    }
+  } catch (error) {
+    showToast(`Gagal menghapus: ${error.message}`, 'error');
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+// ==========================================================================
 // MENU 4: REKAP DATA SISWA
 // ==========================================================================
 
@@ -1702,6 +1929,8 @@ function loadRekapData() {
     renderRekapTerlambat(periodType, bulan, semester, tahun, kelas, search);
   } else if (activeRekapTab === 'pelanggaran') {
     renderRekapPelanggaran(periodType, bulan, semester, tahun, kelas, search);
+  } else if (activeRekapTab === 'izin-pulang') {
+    renderRekapIzinPulang(periodType, bulan, semester, tahun, kelas, search);
   }
 }
 
@@ -1727,6 +1956,9 @@ function updateRekapSubtitle(periodType, bulan, semester, tahun, kelas) {
   
   const subtitlePelanggaran = document.getElementById('rekap-pelanggaran-subtitle');
   if (subtitlePelanggaran) subtitlePelanggaran.textContent = `${labelPeriode} | ${labelKelas}`;
+
+  const subtitleIzinPulang = document.getElementById('rekap-izin-pulang-subtitle');
+  if (subtitleIzinPulang) subtitleIzinPulang.textContent = `${labelPeriode} | ${labelKelas}`;
 }
 
 function handleRekapPeriodTypeChange() {
@@ -1955,6 +2187,63 @@ function renderRekapPelanggaran(periodType, bulan, semester, tahun, kelas, searc
   }
 }
 
+function renderRekapIzinPulang(periodType, bulan, semester, tahun, kelas, search) {
+  const body = document.getElementById('rekap-izin-pulang-table-body');
+  if (!body) return;
+  body.innerHTML = '';
+
+  let filteredStudents = state.students;
+  if (kelas) {
+    filteredStudents = filteredStudents.filter(s => s.kelas === kelas);
+  }
+  if (search) {
+    filteredStudents = filteredStudents.filter(s => s.nama.toLowerCase().includes(search) || s.nisn.includes(search));
+  }
+
+  if (filteredStudents.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data siswa sesuai filter.</td></tr>`;
+    return;
+  }
+
+  // Filter izin pulang logs of selected period
+  state.izinPulang = state.izinPulang || [];
+  const periodIzin = filterDataByPeriod(state.izinPulang, periodType, tahun, bulan, semester);
+
+  let hasData = false;
+
+  filteredStudents.forEach((std) => {
+    const studentIzin = periodIzin.filter(ip => ip.student_id === std.id).sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+    if (studentIzin.length === 0 && search === '') {
+      return;
+    }
+
+    hasData = true;
+
+    // Build details string
+    let detailsHtml = '<span class="text-muted">Tidak ada izin pulang</span>';
+    if (studentIzin.length > 0) {
+      detailsHtml = studentIzin.map(ip => 
+        `<span class="badge badge-success" style="background-color: rgba(14,165,233,0.15); color: #38bdf8; margin: 2px;" title="Piket: ${ip.guru_piket} | Alasan: ${ip.keterangan}">${formatLocalDate(ip.tanggal)} (${ip.jam}): ${ip.keterangan} (Piket: ${ip.guru_piket})</span>`
+      ).join(' ');
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${body.children.length + 1}</td>
+      <td class="text-left font-semibold">${std.nama}</td>
+      <td>${std.kelas}</td>
+      <td>${std.nisn}</td>
+      <td class="text-info font-semibold text-center">${studentIzin.length}x</td>
+      <td class="text-left">${detailsHtml}</td>
+    `;
+    body.appendChild(tr);
+  });
+
+  if (!hasData) {
+    body.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data izin pulang periode ini.</td></tr>`;
+  }
+}
+
 // ==========================================================================
 // MENU 5: UNDUH LAPORAN
 // ==========================================================================
@@ -2039,6 +2328,7 @@ function handleLaporanScopeChange(reportType) {
       if (reportType === 'absen') populateClassSelect('laporan-absen-kelas');
       else if (reportType === 'terlambat') populateClassSelect('laporan-terlambat-kelas');
       else if (reportType === 'pelanggaran') populateClassSelect('laporan-pelanggaran-kelas');
+      else if (reportType === 'izin-pulang') populateClassSelect('laporan-izin-pulang-kelas');
     }
     if (studentContainer) studentContainer.style.display = 'none';
   } else if (scope === 'siswa') {
@@ -2158,6 +2448,8 @@ function downloadSingleStudentLaporan(reportType, studentId, studentName) {
     downloadLaporanTerlambat();
   } else if (reportType === 'pelanggaran') {
     downloadLaporanPelanggaran();
+  } else if (reportType === 'izin-pulang') {
+    downloadLaporanIzinPulang();
   }
   
   document.getElementById(`laporan-${reportType}-scope`).value = origScope;
@@ -2502,6 +2794,119 @@ function downloadLaporanPelanggaran() {
     toggleLoader(false);
   }
 }
+
+function downloadLaporanIzinPulang() {
+  const periodType = document.getElementById('laporan-izin-pulang-period-type').value;
+  const bulan = document.getElementById('laporan-izin-pulang-bulan').value;
+  const semester = document.getElementById('laporan-izin-pulang-semester').value;
+  const tahun = document.getElementById('laporan-izin-pulang-tahun').value;
+  const scope = document.getElementById('laporan-izin-pulang-scope').value;
+
+  let labelPeriode = '';
+  let filenameSuffix = '';
+
+  if (periodType === 'bulanan') {
+    const labelBulan = document.getElementById('laporan-izin-pulang-bulan').options[document.getElementById('laporan-izin-pulang-bulan').selectedIndex].text;
+    labelPeriode = `Bulan ${labelBulan} ${tahun}`;
+    filenameSuffix = `${labelBulan}_${tahun}`;
+  } else if (periodType === 'semester') {
+    const semName = semester === 'genap' ? 'Genap' : 'Ganjil';
+    labelPeriode = `Semester ${semName} ${tahun}`;
+    filenameSuffix = `Semester_${semName}_${tahun}`;
+  } else if (periodType === 'tahunan') {
+    labelPeriode = `Tahun ${tahun}`;
+    filenameSuffix = `Tahunan_${tahun}`;
+  }
+
+  let filteredStudents = state.students;
+  let titleSuffix = 'Semua_Siswa_Dan_Kelas';
+
+  if (scope === 'kelas') {
+    const kelas = document.getElementById('laporan-izin-pulang-kelas').value;
+    if (!kelas) {
+      showToast('Harap pilih kelas terlebih dahulu!', 'warning');
+      return;
+    }
+    filteredStudents = filteredStudents.filter(s => s.kelas === kelas);
+    titleSuffix = `Kelas_${kelas.replace(/\s+/g, '_')}`;
+  } else if (scope === 'siswa') {
+    const studentId = document.getElementById('laporan-izin-pulang-siswa-id').value;
+    const searchInput = document.getElementById('laporan-izin-pulang-siswa-search').value.trim();
+    if (!studentId) {
+      showToast('Harap pilih siswa terlebih dahulu!', 'warning');
+      return;
+    }
+    filteredStudents = filteredStudents.filter(s => s.id === studentId);
+    titleSuffix = `Siswa_${searchInput.replace(/\s+/g, '_')}`;
+  }
+
+  if (filteredStudents.length === 0) {
+    showToast('Data siswa kosong. Tidak ada data untuk diekspor.', 'warning');
+    return;
+  }
+
+  toggleLoader(true, 'Menyusun laporan izin pulang...');
+
+  try {
+    state.izinPulang = state.izinPulang || [];
+    const studentIds = new Set(filteredStudents.map(s => s.id));
+    const periodIzin = filterDataByPeriod(state.izinPulang, periodType, tahun, bulan, semester)
+      .filter(ip => studentIds.has(ip.student_id));
+
+    // 1. Sheet 1: Rincian Log Izin Pulang
+    const logData = periodIzin.map((log, idx) => {
+      const std = state.students.find(s => s.id === log.student_id) || { nama: 'Siswa Terhapus', kelas: '-', nisn: '-' };
+      return {
+        'No': idx + 1,
+        'Tanggal': formatLocalDate(log.tanggal),
+        'Nama Siswa': std.nama,
+        'Kelas': std.kelas,
+        'NISN': std.nisn,
+        'Jam': log.jam,
+        'Alasan/Keterangan': log.keterangan || '-',
+        'Guru Piket': log.guru_piket || '-'
+      };
+    }).sort((a, b) => a.Tanggal.localeCompare(b.Tanggal));
+
+    // 2. Sheet 2: Rekap Frekuensi Izin Pulang
+    const rekapData = filteredStudents.map((std, idx) => {
+      const freq = periodIzin.filter(ip => ip.student_id === std.id).length;
+      return {
+        'No': idx + 1,
+        'Nama Siswa': std.nama,
+        'Kelas': std.kelas,
+        'NISN': std.nisn,
+        'Jumlah Izin Pulang': freq
+      };
+    }).filter(row => row['Jumlah Izin Pulang'] > 0);
+
+    if (logData.length === 0 && rekapData.length === 0) {
+      showToast(`Tidak ada catatan izin pulang siswa untuk filter terpilih pada ${labelPeriode}.`, 'warning');
+      toggleLoader(false);
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+    
+    if (logData.length > 0) {
+      const wsLog = XLSX.utils.json_to_sheet(logData);
+      XLSX.utils.book_append_sheet(wb, wsLog, 'Rincian Izin Pulang');
+    }
+
+    if (rekapData.length > 0) {
+      const wsRekap = XLSX.utils.json_to_sheet(rekapData);
+      XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekap Frekuensi Izin Pulang');
+    }
+
+    XLSX.writeFile(wb, `Laporan_Izin_Pulang_${titleSuffix}_${filenameSuffix}.xlsx`);
+    showToast('Laporan izin pulang berhasil diunduh!', 'success');
+  } catch (error) {
+    showToast(`Gagal mengekspor laporan: ${error.message}`, 'error');
+  } finally {
+    toggleLoader(false);
+  }
+}
+
 
 // ==========================================================================
 // DASHBOARD VIEW CORE RENDER

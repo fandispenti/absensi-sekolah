@@ -644,6 +644,21 @@
       </div>
     </div>
 
+    <!-- Izin Pulang Card -->
+    <div class="card hidden" id="result-izin-pulang-card">
+      <div class="card-title">
+        <i data-lucide="log-out" style="color: #38bdf8;"></i>
+        <span>Riwayat Izin Pulang Sekolah</span>
+      </div>
+      <div class="timeline" id="izin-pulang-timeline">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="empty-logs hidden" id="izin-pulang-empty">
+        <i data-lucide="log-out" style="color: var(--color-success); width: 24px; height: 24px;"></i>
+        <p>Siswa tidak memiliki catatan izin pulang sekolah.</p>
+      </div>
+    </div>
+
     <!-- Footer info -->
     <div class="footer-info">
       <div class="connection-dot" id="conn-dot"></div>
@@ -664,13 +679,15 @@
       students: [],
       attendance: [],
       lateLogs: [],
-      violations: []
+      violations: [],
+      izinPulang: []
     };
     
     let currentStudent = null;
     let studentAttendance = [];
     let studentLates = [];
     let studentViolations = [];
+    let studentIzinPulang = [];
     
     let dbSource = 'local'; // 'local', 'github-relative', 'github-param'
     let dbRepoName = '';
@@ -696,18 +713,20 @@
             connText.textContent = 'Hub Awan: Database Terpusat';
             
             // Load all database components from server API
-            const [siswa, absensi, terlambat, pelanggaran] = await Promise.all([
+            const [siswa, absensi, terlambat, pelanggaran, izinPulang] = await Promise.all([
               fetch('/api/siswa').then(r => r.json()),
               fetch('/api/absensi').then(r => r.json()),
               fetch('/api/terlambat').then(r => r.json()),
-              fetch('/api/pelanggaran').then(r => r.json())
+              fetch('/api/pelanggaran').then(r => r.json()),
+              fetch('/api/izin-pulang').then(r => r.json())
             ]);
             
             appDb = {
               students: (siswa || []).map(s => ({ id: String(s.id), nama: s.nama, nisn: s.nisn, kelas: s.kelas })),
               attendance: (absensi || []).map(a => ({ id: String(a.id), student_id: String(a.siswa_id), tanggal: a.tanggal, status: a.status, keterangan: a.keterangan })),
               lateLogs: (terlambat || []).map(t => ({ id: String(t.id), student_id: String(t.siswa_id), tanggal: t.tanggal, jam: t.jam, keterangan: t.keterangan })),
-              violations: (pelanggaran || []).map(v => ({ id: String(v.id), student_id: String(v.siswa_id), tanggal: v.tanggal, jam: v.jam, keterangan: v.keterangan }))
+              violations: (pelanggaran || []).map(v => ({ id: String(v.id), student_id: String(v.siswa_id), tanggal: v.tanggal, jam: v.jam, keterangan: v.keterangan })),
+              izinPulang: (izinPulang || []).map(ip => ({ id: String(ip.id), student_id: String(ip.siswa_id), tanggal: ip.tanggal, jam: ip.jam, keterangan: ip.keterangan, guru_piket: ip.guru_piket }))
             };
             
             showToast('Terhubung ke database server terpusat sekolah', 'success');
@@ -928,10 +947,45 @@
         });
       }
 
+      // 4. Process Izin Pulang Timeline
+      studentIzinPulang = (appDb.izinPulang || [])
+        .filter(ip => ip.student_id === student.id)
+        .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+        
+      const izinPulangTimeline = document.getElementById('izin-pulang-timeline');
+      const izinPulangEmpty = document.getElementById('izin-pulang-empty');
+      izinPulangTimeline.innerHTML = '';
+      
+      if (studentIzinPulang.length === 0) {
+        izinPulangTimeline.classList.add('hidden');
+        izinPulangEmpty.classList.remove('hidden');
+      } else {
+        izinPulangEmpty.classList.add('hidden');
+        izinPulangTimeline.classList.remove('hidden');
+        
+        studentIzinPulang.forEach(ip => {
+          const item = document.createElement('div');
+          item.className = 'timeline-item';
+          item.innerHTML = `
+            <div class="timeline-dot" style="background-color: #38bdf8;"></div>
+            <div class="timeline-header">
+              <span>${formatDateId(ip.tanggal)}</span>
+              <span class="timeline-time">${ip.jam} WIB</span>
+            </div>
+            <div class="timeline-desc" style="color: #7dd3fc">
+              Alasan: ${ip.keterangan} <br>
+              <small style="color: var(--text-muted)">Guru Piket: ${ip.guru_piket}</small>
+            </div>
+          `;
+          izinPulangTimeline.appendChild(item);
+        });
+      }
+
       // Show all result cards
       document.getElementById('result-profile-card').classList.remove('hidden');
       document.getElementById('result-late-card').classList.remove('hidden');
       document.getElementById('result-violation-card').classList.remove('hidden');
+      document.getElementById('result-izin-pulang-card').classList.remove('hidden');
       
       lucide.createIcons();
       showToast(`Data untuk ${student.nama} berhasil dimuat.`, 'success');
@@ -942,6 +996,7 @@
       document.getElementById('result-profile-card').classList.add('hidden');
       document.getElementById('result-late-card').classList.add('hidden');
       document.getElementById('result-violation-card').classList.add('hidden');
+      document.getElementById('result-izin-pulang-card').classList.add('hidden');
       currentStudent = null;
     }
 
@@ -997,6 +1052,17 @@
         }));
         const wsViolations = XLSX.utils.json_to_sheet(violationsData);
         XLSX.utils.book_append_sheet(wb, wsViolations, 'Catatan Pelanggaran');
+
+        // 4. Sheet Log Izin Pulang
+        const izinPulangData = studentIzinPulang.map((ip, i) => ({
+          'No': i + 1,
+          'Tanggal': formatDateId(ip.tanggal),
+          'Jam Pulang': ip.jam,
+          'Alasan/Keterangan': ip.keterangan || '-',
+          'Guru Piket': ip.guru_piket || '-'
+        }));
+        const wsIzinPulang = XLSX.utils.json_to_sheet(izinPulangData);
+        XLSX.utils.book_append_sheet(wb, wsIzinPulang, 'Catatan Izin Pulang');
         
         XLSX.writeFile(wb, `Rekap_Presensi_${currentStudent.nama.replace(/\s+/g, '_')}_${currentStudent.nisn}.xlsx`);
         showToast('File laporan Excel berhasil diunduh!', 'success');
