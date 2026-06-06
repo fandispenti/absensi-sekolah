@@ -1,0 +1,1172 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Absensi & Keterlambatan Siswa</title>
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons (CDN) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SheetJS (XLSX) library (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+
+  <!-- Main Container -->
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.png" alt="Logo SMPN 3 Batam" class="logo-img">
+        <span class="logo-text">SMPN 3 Batam</span>
+      </div>
+      
+      <nav class="sidebar-menu">
+        <button class="menu-item active" id="btn-menu-dashboard" onclick="switchMenu('dashboard')">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </button>
+        <button class="menu-item" id="btn-menu-upload" onclick="switchMenu('upload')">
+          <i data-lucide="file-up"></i>
+          <span>Upload Data Siswa</span>
+        </button>
+        <button class="menu-item" id="btn-menu-absensi" onclick="switchMenu('absensi')">
+          <i data-lucide="calendar-check"></i>
+          <span>Absensi Siswa</span>
+        </button>
+        <button class="menu-item" id="btn-menu-terlambat" onclick="switchMenu('terlambat')">
+          <i data-lucide="clock"></i>
+          <span>Siswa Terlambat</span>
+        </button>
+        <button class="menu-item" id="btn-menu-pelanggaran" onclick="switchMenu('pelanggaran')">
+          <i data-lucide="shield-alert"></i>
+          <span>Catatan Pelanggaran</span>
+        </button>
+        <button class="menu-item" id="btn-menu-rekap" onclick="switchMenu('rekap')">
+          <i data-lucide="clipboard-list"></i>
+          <span>Rekap Data</span>
+        </button>
+        <div class="sidebar-submenu-group" id="submenu-laporan-group">
+          <button class="menu-item" id="btn-menu-laporan" onclick="toggleLaporanSubmenu(event)">
+            <i data-lucide="download"></i>
+            <span>Unduh Laporan</span>
+            <i data-lucide="chevron-down" class="submenu-chevron" id="laporan-chevron"></i>
+          </button>
+          <div class="sidebar-submenu" id="sidebar-laporan-submenu" style="display: none;">
+            <button class="submenu-item" id="btn-submenu-laporan-absensi" onclick="switchLaporanSubmenu('absensi')">
+              <i data-lucide="calendar-check"></i>
+              <span>Laporan Absensi</span>
+            </button>
+            <button class="submenu-item" id="btn-submenu-laporan-terlambat" onclick="switchLaporanSubmenu('terlambat')">
+              <i data-lucide="clock"></i>
+              <span>Laporan Keterlambatan</span>
+            </button>
+            <button class="submenu-item" id="btn-submenu-laporan-pelanggaran" onclick="switchLaporanSubmenu('pelanggaran')">
+              <i data-lucide="shield-alert"></i>
+              <span>Laporan Pelanggaran</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="ortu.html" target="_blank" class="menu-item" style="text-decoration: none; color: var(--text-muted);">
+          <i data-lucide="external-link" style="color: var(--color-success)"></i>
+          <span>Portal Orang Tua</span>
+        </a>
+        <!-- Button Removed -->
+        <div class="sync-badge-container">
+          <div id="sync-status-indicator" class="sync-status status-offline">
+            <span class="status-dot"></span>
+            <span id="sync-status-text">Mode Lokal (Offline)</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Navbar -->
+      <header class="top-navbar">
+        <div class="page-title-container">
+          <h1 id="page-title">Dashboard Utama</h1>
+          <p id="page-subtitle" class="subtitle">Statistik kehadiran dan keterlambatan hari ini</p>
+        </div>
+        <div class="navbar-actions">
+          <div class="date-today">
+            <i data-lucide="calendar"></i>
+            <span id="current-date-display">-</span>
+          </div>
+          <button class="theme-toggle" id="btn-theme-toggle" onclick="toggleTheme()" title="Ganti Tema">
+            <i data-lucide="sun" id="theme-icon-light"></i>
+            <i data-lucide="moon" id="theme-icon-dark" style="display: none;"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Views (Single Page switching) -->
+      <div class="content-view-container">
+
+        <!-- ================= DASHBOARD VIEW ================= -->
+        <section id="view-dashboard" class="content-view active">
+          <!-- Summary Cards Grid -->
+          <div class="stats-grid">
+            <div class="stat-card purple-glow">
+              <div class="stat-icon">
+                <i data-lucide="users"></i>
+              </div>
+              <div class="stat-info">
+                <h3>Total Siswa</h3>
+                <p class="stat-number" id="dash-total-siswa">0</p>
+                <span class="stat-trend text-muted">Terdaftar dalam sistem</span>
+              </div>
+            </div>
+            
+            <div class="stat-card green-glow">
+              <div class="stat-icon">
+                <i data-lucide="check-circle-2"></i>
+              </div>
+              <div class="stat-info">
+                <h3>Persentase Kehadiran</h3>
+                <p class="stat-number" id="dash-kehadiran-percent">0%</p>
+                <span class="stat-trend text-success" id="dash-kehadiran-subtext">Hari ini</span>
+              </div>
+            </div>
+
+            <div class="stat-card red-glow">
+              <div class="stat-icon">
+                <i data-lucide="user-x"></i>
+              </div>
+              <div class="stat-info">
+                <h3>Absen Hari Ini</h3>
+                <p class="stat-number" id="dash-total-absen">0</p>
+                <span class="stat-trend text-danger" id="dash-absen-details">Sakit: 0 | Izin: 0 | Alfa: 0</span>
+              </div>
+            </div>
+
+            <div class="stat-card orange-glow">
+              <div class="stat-icon">
+                <i data-lucide="alarm-clock"></i>
+              </div>
+              <div class="stat-info">
+                <h3>Terlambat Hari Ini</h3>
+                <p class="stat-number" id="dash-total-terlambat">0</p>
+                <span class="stat-trend text-warning" id="dash-terlambat-subtext">Siswa datang terlambat</span>
+              </div>
+            </div>
+
+            <div class="stat-card red-glow">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #f43f5e, #e11d48); box-shadow: 0 4px 14px rgba(225, 29, 72, 0.3);">
+                <i data-lucide="shield-alert"></i>
+              </div>
+              <div class="stat-info">
+                <h3>Pelanggaran Hari Ini</h3>
+                <p class="stat-number" id="dash-total-pelanggaran">0</p>
+                <span class="stat-trend text-danger" id="dash-pelanggaran-subtext">Pelanggaran dicatat</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts & Lists Grid -->
+          <div class="dashboard-grid">
+            <!-- Attendance Donut Chart -->
+            <div class="dashboard-card card-chart">
+              <div class="card-header">
+                <h2>Rangkuman Kehadiran Hari Ini</h2>
+              </div>
+              <div class="card-body chart-container-flex">
+                <div class="svg-chart-wrapper" id="attendance-donut-chart">
+                  <!-- Custom SVG Donut Chart populated by JS -->
+                </div>
+                <div class="chart-legend" id="attendance-legend">
+                  <!-- Custom legend populated by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Late Student Trend Chart -->
+            <div class="dashboard-card card-chart">
+              <div class="card-header">
+                <h2>Tren Keterlambatan Bulanan</h2>
+              </div>
+              <div class="card-body">
+                <div class="svg-chart-wrapper" id="late-trend-chart">
+                  <!-- Custom SVG Bar/Line Chart populated by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Frequently Late Students -->
+            <div class="dashboard-card card-list">
+              <div class="card-header">
+                <h2>Siswa Sering Terlambat</h2>
+                <span class="badge badge-warning">Bulan Ini</span>
+              </div>
+              <div class="card-body scrollable-list">
+                <div class="custom-table-container">
+                  <table class="minimal-table">
+                    <thead>
+                      <tr>
+                        <th>Nama</th>
+                        <th>Kelas</th>
+                        <th class="text-center">Frekuensi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dash-top-late-body">
+                      <tr>
+                        <td colspan="3" class="text-center text-muted">Belum ada data keterlambatan bulan ini.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Late Log -->
+            <div class="dashboard-card card-list">
+              <div class="card-header">
+                <h2>Aktivitas Keterlambatan Terbaru</h2>
+                <i data-lucide="clock" class="text-muted"></i>
+              </div>
+              <div class="card-body scrollable-list">
+                <div class="activity-timeline" id="dash-recent-activities">
+                  <div class="timeline-empty text-muted text-center py-4">Belum ada aktivitas keterlambatan hari ini.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= UPLOAD SISWA VIEW ================= -->
+        <section id="view-upload" class="content-view">
+          <div class="dashboard-card card-full">
+            <div class="card-header border-bottom">
+              <div>
+                <h2>Impor Data Siswa Menggunakan Excel</h2>
+                <p class="subtitle mt-1">Unggah daftar siswa Anda menggunakan berkas Excel (.xlsx / .xls) dengan kolom: Nama, NISN, Kelas.</p>
+              </div>
+              <button class="btn btn-secondary btn-icon-text" onclick="downloadExcelTemplate()">
+                <i data-lucide="download"></i>
+                <span>Unduh Template Excel</span>
+              </button>
+            </div>
+            
+            <div class="card-body text-center py-5">
+              <div class="upload-dropzone" id="excel-dropzone">
+                <i data-lucide="file-spreadsheet" class="upload-icon"></i>
+                <h3>Tarik & Lepaskan File Excel di Sini</h3>
+                <p class="text-muted mb-3">atau</p>
+                <label for="excel-file-input" class="btn btn-primary cursor-pointer">
+                  <i data-lucide="search"></i> Cari File
+                </label>
+                <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden-input" onchange="handleExcelUpload(event)">
+                <p class="file-info text-muted mt-2" id="uploaded-file-name">Belum ada file terpilih.</p>
+              </div>
+
+              <!-- Preview Grid -->
+              <div class="preview-import-container mt-4" id="import-preview-section" style="display: none;">
+                <div class="d-flex justify-between align-center mb-3">
+                  <h3 class="text-left"><i data-lucide="eye" class="v-middle mr-1 text-primary"></i> Pratinjau Data yang Akan Diimpor (<span id="import-count">0</span> siswa)</h3>
+                  <div class="action-buttons">
+                    <button class="btn btn-danger mr-2" onclick="cancelImport()">Batal</button>
+                    <button class="btn btn-success" id="btn-save-import" onclick="saveImportedStudents()">
+                      <i data-lucide="save"></i> Simpan ke Database
+                    </button>
+                  </div>
+                </div>
+                <div class="custom-table-container max-h-400">
+                  <table class="styled-table">
+                    <thead>
+                      <tr>
+                        <th>No</th>
+                        <th>Nama</th>
+                        <th>NISN</th>
+                        <th>Kelas</th>
+                      </tr>
+                    </thead>
+                    <tbody id="import-preview-body">
+                      <!-- Data preview rows will go here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Student List Management -->
+          <div class="dashboard-card card-full mt-4">
+            <div class="card-header border-bottom d-flex justify-between align-center">
+              <h2>Daftar Siswa Terdaftar</h2>
+              <div class="header-filters">
+                <select id="filter-siswa-kelas" onchange="renderStudentListTable()" class="form-select w-200">
+                  <option value="">Semua Kelas</option>
+                </select>
+                <div class="search-box">
+                  <i data-lucide="search"></i>
+                  <input type="text" id="search-siswa-nama" placeholder="Cari nama..." onkeyup="renderStudentListTable()">
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="custom-table-container max-h-500">
+                <table class="styled-table">
+                  <thead>
+                    <tr>
+                      <th width="80">No</th>
+                      <th>Nama</th>
+                      <th>NISN</th>
+                      <th>Kelas</th>
+                      <th width="100" class="text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="student-list-body">
+                    <tr>
+                      <td colspan="5" class="text-center text-muted">Belum ada data siswa. Silakan impor dari Excel di atas.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= ABSENSI SISWA VIEW ================= -->
+        <section id="view-absensi" class="content-view">
+          <div class="filter-bar dashboard-card mb-4">
+            <div class="filter-row">
+              <div class="filter-group">
+                <label for="absensi-tanggal"><i data-lucide="calendar" class="v-middle mr-1"></i> Tanggal</label>
+                <input type="date" id="absensi-tanggal" class="form-input" onchange="loadAttendanceGrid()">
+              </div>
+              <div class="filter-group">
+                <label for="absensi-kelas"><i data-lucide="users" class="v-middle mr-1"></i> Kelas</label>
+                <select id="absensi-kelas" class="form-select" onchange="loadAttendanceGrid()">
+                  <!-- Dynamically populated classes -->
+                  <option value="">Pilih Kelas</option>
+                </select>
+              </div>
+              <div class="filter-group-action">
+                <button class="btn btn-primary" onclick="loadAttendanceGrid()">
+                  <i data-lucide="refresh-cw"></i> Muat Siswa
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-card card-full" id="attendance-panel" style="display: none;">
+            <div class="card-header border-bottom d-flex justify-between align-center">
+              <div>
+                <h2>Lembar Absensi Siswa</h2>
+                <p class="subtitle mt-1" id="attendance-panel-subtitle">Kelas: - | Tanggal: -</p>
+              </div>
+              <div class="quick-actions">
+                <button class="btn btn-secondary btn-sm mr-2" onclick="bulkSetAttendance('hadir')">Set Semua Hadir</button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <div class="custom-table-container">
+                <table class="styled-table table-interactive">
+                  <thead>
+                    <tr>
+                      <th width="60">No</th>
+                      <th>Nama Siswa</th>
+                      <th width="120">NISN</th>
+                      <th width="400" class="text-center">Status Kehadiran</th>
+                      <th>Keterangan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="attendance-grid-body">
+                    <!-- Loaded dynamically -->
+                  </tbody>
+                </table>
+              </div>
+              
+              <div class="form-actions mt-4 text-right">
+                <button class="btn btn-success btn-lg" onclick="saveAttendance()">
+                  <i data-lucide="check"></i> Simpan Absensi Kelas
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state-card text-center py-5 dashboard-card" id="attendance-empty-state">
+            <i data-lucide="clipboard" class="large-icon text-muted mb-3"></i>
+            <h2>Silakan pilih Kelas dan Tanggal</h2>
+            <p class="text-muted">Pilih kelas dan tanggal di panel atas untuk memuat lembar absensi siswa.</p>
+          </div>
+        </section>
+
+        <!-- ================= SISWA TERLAMBAT VIEW ================= -->
+        <section id="view-terlambat" class="content-view">
+          <div class="row">
+            <!-- Form Input Terlambat -->
+            <div class="col-md-5">
+              <div class="dashboard-card">
+                <div class="card-header border-bottom">
+                  <h2>Catat Siswa Terlambat</h2>
+                </div>
+                <div class="card-body">
+                  <form id="form-terlambat" onsubmit="handleLateSubmit(event)">
+                    
+                    <div class="form-group mb-3">
+                      <label for="terlambat-siswa-select">Pilih Siswa <span class="required">*</span></label>
+                      <div class="searchable-select-container">
+                        <input type="text" id="terlambat-search-input" class="form-input" placeholder="Cari nama atau NISN siswa..." onfocus="showStudentDropdown()" onkeyup="filterStudentDropdown()">
+                        <div class="select-dropdown-list" id="terlambat-dropdown-list" style="display: none;">
+                          <!-- Populated by JS -->
+                        </div>
+                        <input type="hidden" id="terlambat-siswa-id" required>
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                      <label for="terlambat-kelas-display">Kelas</label>
+                      <input type="text" id="terlambat-kelas-display" class="form-input" readonly placeholder="Terisi otomatis..." style="background: rgba(255,255,255,0.05)">
+                    </div>
+
+                    <div class="row">
+                      <div class="col-6">
+                        <div class="form-group mb-3">
+                          <label for="terlambat-tanggal">Tanggal <span class="required">*</span></label>
+                          <input type="date" id="terlambat-tanggal" class="form-input" required>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="form-group mb-3">
+                          <label for="terlambat-jam">Jam Datang <span class="required">*</span></label>
+                          <input type="time" id="terlambat-jam" class="form-input" required>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-4">
+                      <label for="terlambat-keterangan">Keterangan/Alasan Terlambat</label>
+                      <textarea id="terlambat-keterangan" class="form-input" rows="3" placeholder="Contoh: Ban bocor, macet dijalan, dll."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-lg">
+                      <i data-lucide="plus-circle"></i> Catat Keterlambatan
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- List Recent Late Logs -->
+            <div class="col-md-7">
+              <div class="dashboard-card">
+                <div class="card-header border-bottom d-flex justify-between align-center">
+                  <h2>Log Siswa Terlambat Hari Ini</h2>
+                  <span class="badge badge-warning" id="late-today-badge">0 Siswa</span>
+                </div>
+                <div class="card-body">
+                  <div class="custom-table-container max-h-500">
+                    <table class="styled-table">
+                      <thead>
+                        <tr>
+                          <th>Nama</th>
+                          <th>Kelas</th>
+                          <th width="100">Jam</th>
+                          <th>Keterangan</th>
+                          <th width="80" class="text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody id="late-today-table-body">
+                        <tr>
+                          <td colspan="5" class="text-center text-muted">Belum ada siswa terlambat yang dicatat hari ini.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= CATATAN PELANGGARAN VIEW ================= -->
+        <section id="view-pelanggaran" class="content-view">
+          <div class="row">
+            <!-- Form Input Pelanggaran -->
+            <div class="col-md-5">
+              <div class="dashboard-card">
+                <div class="card-header border-bottom">
+                  <h2>Catat Pelanggaran Siswa</h2>
+                </div>
+                <div class="card-body">
+                  <form id="form-pelanggaran" onsubmit="handleViolationSubmit(event)">
+                    
+                    <div class="form-group mb-3">
+                      <label for="pelanggaran-siswa-select">Pilih Siswa <span class="required">*</span></label>
+                      <div class="searchable-select-container">
+                        <input type="text" id="pelanggaran-search-input" class="form-input" placeholder="Cari nama atau NISN siswa..." onfocus="showViolationStudentDropdown()" onkeyup="filterViolationStudentDropdown()">
+                        <div class="select-dropdown-list" id="pelanggaran-dropdown-list" style="display: none;">
+                          <!-- Populated by JS -->
+                        </div>
+                        <input type="hidden" id="pelanggaran-siswa-id" required>
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                      <label for="pelanggaran-kelas-display">Kelas</label>
+                      <input type="text" id="pelanggaran-kelas-display" class="form-input" readonly placeholder="Terisi otomatis..." style="background: rgba(255,255,255,0.05)">
+                    </div>
+
+                    <div class="row">
+                      <div class="col-6">
+                        <div class="form-group mb-3">
+                          <label for="pelanggaran-tanggal">Tanggal <span class="required">*</span></label>
+                          <input type="date" id="pelanggaran-tanggal" class="form-input" required>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="form-group mb-3">
+                          <label for="pelanggaran-jam">Jam Kejadian <span class="required">*</span></label>
+                          <input type="time" id="pelanggaran-jam" class="form-input" required>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-4">
+                      <label for="pelanggaran-keterangan">Keterangan / Rincian Pelanggaran <span class="required">*</span></label>
+                      <textarea id="pelanggaran-keterangan" class="form-input" rows="3" placeholder="Contoh: Merokok di kantin, Atribut seragam tidak lengkap, dll." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100 btn-lg">
+                      <i data-lucide="plus-circle"></i> Catat Pelanggaran
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- List Recent Violation Logs -->
+            <div class="col-md-7">
+              <div class="dashboard-card">
+                <div class="card-header border-bottom d-flex justify-between align-center">
+                  <h2>Log Pelanggaran Siswa Hari Ini</h2>
+                  <span class="badge badge-danger" id="pelanggaran-today-badge">0 Kasus</span>
+                </div>
+                <div class="card-body">
+                  <div class="custom-table-container max-h-500">
+                    <table class="styled-table">
+                      <thead>
+                        <tr>
+                          <th>Nama</th>
+                          <th>Kelas</th>
+                          <th width="100">Jam</th>
+                          <th>Pelanggaran</th>
+                          <th width="80" class="text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody id="pelanggaran-today-table-body">
+                        <tr>
+                          <td colspan="5" class="text-center text-muted">Belum ada pelanggaran yang dicatat hari ini.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= REKAP DATA VIEW ================= -->
+        <section id="view-rekap" class="content-view">
+          <!-- Filter Rekap -->
+          <div class="filter-bar dashboard-card mb-4">
+            <div class="filter-row">
+              <div class="filter-group">
+                <label for="rekap-period-type"><i data-lucide="layers" class="v-middle mr-1"></i> Periode</label>
+                <select id="rekap-period-type" class="form-select" onchange="handleRekapPeriodTypeChange()">
+                  <option value="bulanan">Bulanan</option>
+                  <option value="semester">Per Semester</option>
+                  <option value="tahunan">Per Tahun</option>
+                </select>
+              </div>
+              <div class="filter-group" id="rekap-bulan-container">
+                <label for="rekap-bulan"><i data-lucide="calendar" class="v-middle mr-1"></i> Bulan</label>
+                <select id="rekap-bulan" class="form-select" onchange="loadRekapData()">
+                  <option value="01">Januari</option>
+                  <option value="02">Februari</option>
+                  <option value="03">Maret</option>
+                  <option value="04">April</option>
+                  <option value="05">Mei</option>
+                  <option value="06">Juni</option>
+                  <option value="07">Juli</option>
+                  <option value="08">Agustus</option>
+                  <option value="09">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+                </select>
+              </div>
+              <div class="filter-group" id="rekap-semester-container" style="display: none;">
+                <label for="rekap-semester"><i data-lucide="book-open" class="v-middle mr-1"></i> Semester</label>
+                <select id="rekap-semester" class="form-select" onchange="loadRekapData()">
+                  <option value="genap">Semester Genap (Januari - Juni)</option>
+                  <option value="ganjil">Semester Ganjil (Juli - Desember)</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="rekap-tahun">Tahun</label>
+                <select id="rekap-tahun" class="form-select" onchange="loadRekapData()">
+                  <!-- Populated dynamically -->
+                  <option value="2026">2026</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="rekap-kelas"><i data-lucide="users" class="v-middle mr-1"></i> Kelas</label>
+                <select id="rekap-kelas" class="form-select" onchange="loadRekapData()">
+                  <option value="">Semua Kelas</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="rekap-search">Cari Nama Siswa</label>
+                <div class="search-box">
+                  <i data-lucide="search"></i>
+                  <input type="text" id="rekap-search" placeholder="Cari nama..." onkeyup="loadRekapData()">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Selector Rekap -->
+          <div class="tab-container mb-3">
+            <button class="tab-button active" id="tab-rekap-absensi" onclick="switchRekapTab('absensi')">
+              <i data-lucide="calendar-check" class="mr-1 v-middle"></i> Rekap Absensi
+            </button>
+            <button class="tab-button" id="tab-rekap-terlambat" onclick="switchRekapTab('terlambat')">
+              <i data-lucide="clock" class="mr-1 v-middle"></i> Rekap Siswa Terlambat
+            </button>
+            <button class="tab-button" id="tab-rekap-pelanggaran" onclick="switchRekapTab('pelanggaran')">
+              <i data-lucide="shield-alert" class="mr-1 v-middle"></i> Rekap Pelanggaran
+            </button>
+          </div>
+
+          <!-- Tab Content: Rekap Absensi -->
+          <div class="dashboard-card card-full rekap-tab-content active" id="rekap-tab-absensi-content">
+            <div class="card-header border-bottom">
+              <h2>Rangkuman Akumulasi Kehadiran Siswa Per Bulan</h2>
+              <p class="subtitle mt-1" id="rekap-absensi-subtitle">Bulan: - | Kelas: Semua Kelas</p>
+            </div>
+            <div class="card-body">
+              <div class="custom-table-container">
+                <table class="styled-table text-center-headers">
+                  <thead>
+                    <tr>
+                      <th width="60">No</th>
+                      <th class="text-left">Nama Siswa</th>
+                      <th width="100">Kelas</th>
+                      <th width="120">NISN</th>
+                      <th width="100" class="text-center text-success font-semibold">Hadir</th>
+                      <th width="100" class="text-center text-warning font-semibold">Sakit</th>
+                      <th width="100" class="text-center text-info font-semibold">Izin</th>
+                      <th width="100" class="text-center text-danger font-semibold">Alpha</th>
+                      <th width="150" class="text-center">Persentase</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rekap-absensi-table-body">
+                    <tr>
+                      <td colspan="9" class="text-center text-muted">Belum ada data absensi untuk filter terpilih.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content: Rekap Terlambat -->
+          <div class="dashboard-card card-full rekap-tab-content" id="rekap-tab-terlambat-content" style="display: none;">
+            <div class="card-header border-bottom">
+              <h2>Log Akumulasi Frekuensi Siswa Terlambat Per Bulan</h2>
+              <p class="subtitle mt-1" id="rekap-terlambat-subtitle">Bulan: - | Kelas: Semua Kelas</p>
+            </div>
+            <div class="card-body">
+              <div class="custom-table-container">
+                <table class="styled-table text-center-headers">
+                  <thead>
+                    <tr>
+                      <th width="60">No</th>
+                      <th class="text-left">Nama Siswa</th>
+                      <th width="100">Kelas</th>
+                      <th width="120">NISN</th>
+                      <th width="150" class="text-center text-warning font-semibold">Frekuensi Terlambat</th>
+                      <th>Rincian Tanggal & Alasan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rekap-terlambat-table-body">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted">Belum ada data keterlambatan untuk filter terpilih.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content: Rekap Pelanggaran -->
+          <div class="dashboard-card card-full rekap-tab-content" id="rekap-tab-pelanggaran-content" style="display: none;">
+            <div class="card-header border-bottom">
+              <h2>Log Akumulasi Frekuensi Pelanggaran Siswa Per Bulan</h2>
+              <p class="subtitle mt-1" id="rekap-pelanggaran-subtitle">Bulan: - | Kelas: Semua Kelas</p>
+            </div>
+            <div class="card-body">
+              <div class="custom-table-container">
+                <table class="styled-table text-center-headers">
+                  <thead>
+                    <tr>
+                      <th width="60">No</th>
+                      <th class="text-left">Nama Siswa</th>
+                      <th width="100">Kelas</th>
+                      <th width="120">NISN</th>
+                      <th width="150" class="text-center text-danger font-semibold">Jumlah Pelanggaran</th>
+                      <th>Rincian Tanggal & Keterangan Pelanggaran</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rekap-pelanggaran-table-body">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted">Belum ada data pelanggaran untuk filter terpilih.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= UNDUH LAPORAN VIEW ================= -->
+        <section id="view-laporan" class="content-view">
+          <!-- Submenu Laporan (Tabs) -->
+          <div class="tab-container mb-4">
+            <button class="tab-button active" id="tab-laporan-absensi" onclick="switchLaporanTab('absensi')">
+              <i data-lucide="calendar-check" class="mr-1 v-middle"></i> Laporan Absensi
+            </button>
+            <button class="tab-button" id="tab-laporan-terlambat" onclick="switchLaporanTab('terlambat')">
+              <i data-lucide="clock" class="mr-1 v-middle"></i> Laporan Keterlambatan
+            </button>
+            <button class="tab-button" id="tab-laporan-pelanggaran" onclick="switchLaporanTab('pelanggaran')">
+              <i data-lucide="shield-alert" class="mr-1 v-middle"></i> Laporan Pelanggaran
+            </button>
+          </div>
+
+          <!-- Tab 1: Laporan Absensi -->
+          <div class="dashboard-card card-full laporan-tab-content active" id="laporan-tab-absensi-content">
+            <div class="card-header border-bottom">
+              <div>
+                <h2>Laporan Periodik Absensi Siswa</h2>
+                <p class="subtitle mt-1">Ekspor ringkasan kehadiran siswa bulanan, semester, atau tahunan dalam format Excel (.xlsx)</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <!-- Column 1: Jenis Periode -->
+                <div class="col-md-4 mb-3">
+                  <label for="laporan-absen-period-type" class="form-label font-semibold">Jenis Periode</label>
+                  <select id="laporan-absen-period-type" class="form-select" onchange="handleLaporanPeriodTypeChange('absen')">
+                    <option value="bulanan">Bulanan</option>
+                    <option value="semester">Per Semester</option>
+                    <option value="tahunan">Per Tahun</option>
+                  </select>
+                </div>
+
+                <!-- Column 2: Detail Waktu -->
+                <div class="col-md-4 mb-3">
+                  <div class="row">
+                    <div class="col-6" id="laporan-absen-bulan-container">
+                      <label for="laporan-absen-bulan" class="form-label font-semibold">Bulan</label>
+                      <select id="laporan-absen-bulan" class="form-select">
+                        <option value="01">Januari</option>
+                        <option value="02">Februari</option>
+                        <option value="03">Maret</option>
+                        <option value="04">April</option>
+                        <option value="05">Mei</option>
+                        <option value="06">Juni</option>
+                        <option value="07">Juli</option>
+                        <option value="08">Agustus</option>
+                        <option value="09">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                      </select>
+                    </div>
+                    <div class="col-6" id="laporan-absen-semester-container" style="display: none;">
+                      <label for="laporan-absen-semester" class="form-label font-semibold">Semester</label>
+                      <select id="laporan-absen-semester" class="form-select">
+                        <option value="genap">Semester Genap</option>
+                        <option value="ganjil">Semester Ganjil</option>
+                      </select>
+                    </div>
+                    <div class="col-6" id="laporan-absen-tahun-container">
+                      <label for="laporan-absen-tahun" class="form-label font-semibold">Tahun</label>
+                      <select id="laporan-absen-tahun" class="form-select">
+                        <option value="2026">2026</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Column 3: Scope -->
+                <div class="col-md-4 mb-3">
+                  <label class="form-label font-semibold mb-2 d-flex">Tingkat Laporan (Scope)</label>
+                  <div class="segmented-control" id="laporan-absen-scope-segmented">
+                    <button type="button" class="segment-button active" id="btn-seg-absen-semua" onclick="setLaporanScope('absen', 'semua')">Semua</button>
+                    <button type="button" class="segment-button" id="btn-seg-absen-kelas" onclick="setLaporanScope('absen', 'kelas')">Per Kelas</button>
+                    <button type="button" class="segment-button" id="btn-seg-absen-siswa" onclick="setLaporanScope('absen', 'siswa')">Per Siswa</button>
+                  </div>
+                  <input type="hidden" id="laporan-absen-scope" value="semua">
+                </div>
+              </div>
+
+              <!-- Dynamic Filter inputs for Absensi -->
+              <div class="row mt-2">
+                <!-- Class filter container -->
+                <div class="col-12 mb-3" id="laporan-absen-kelas-container" style="display: none;">
+                  <label for="laporan-absen-kelas" class="form-label font-semibold">Pilih Kelas</label>
+                  <select id="laporan-absen-kelas" class="form-select">
+                    <!-- Populated dynamically -->
+                    <option value="">Pilih Kelas</option>
+                  </select>
+                </div>
+
+                <!-- Student filter container -->
+                <div class="col-12 mb-3" id="laporan-absen-siswa-container" style="display: none;">
+                  <label class="form-label font-semibold">Cari Siswa</label>
+                  <div class="search-box mb-2">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="laporan-absen-siswa-search" class="form-input" placeholder="Ketik nama, NISN, atau kelas untuk mencari..." onkeyup="searchStudentForLaporan('absen')">
+                  </div>
+                  <input type="hidden" id="laporan-absen-siswa-id">
+                  <div class="student-search-results-wrapper" id="laporan-absen-siswa-results-wrapper" style="display: none;">
+                    <div class="custom-table-container max-h-400">
+                      <table class="minimal-table">
+                        <thead>
+                          <tr>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>NISN</th>
+                            <th width="120" class="text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody id="laporan-absen-siswa-results-body">
+                          <!-- Populated dynamically -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-top pt-4 mt-2">
+                <button class="btn btn-success btn-lg btn-icon-text w-100" onclick="downloadLaporanAbsensi()">
+                  <i data-lucide="file-spreadsheet"></i>
+                  <span>Ekspor Laporan Absensi (.xlsx)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Laporan Keterlambatan -->
+          <div class="dashboard-card card-full laporan-tab-content" id="laporan-tab-terlambat-content" style="display: none;">
+            <div class="card-header border-bottom">
+              <div>
+                <h2>Laporan Periodik Siswa Terlambat</h2>
+                <p class="subtitle mt-1">Ekspor daftar rincian dan rekap keterlambatan siswa bulanan, semester, atau tahunan ke berkas Excel (.xlsx)</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <!-- Column 1: Jenis Periode -->
+                <div class="col-md-4 mb-3">
+                  <label for="laporan-terlambat-period-type" class="form-label font-semibold">Jenis Periode</label>
+                  <select id="laporan-terlambat-period-type" class="form-select" onchange="handleLaporanPeriodTypeChange('terlambat')">
+                    <option value="bulanan">Bulanan</option>
+                    <option value="semester">Per Semester</option>
+                    <option value="tahunan">Per Tahun</option>
+                  </select>
+                </div>
+
+                <!-- Column 2: Detail Waktu -->
+                <div class="col-md-4 mb-3">
+                  <div class="row">
+                    <div class="col-6" id="laporan-terlambat-bulan-container">
+                      <label for="laporan-terlambat-bulan" class="form-label font-semibold">Bulan</label>
+                      <select id="laporan-terlambat-bulan" class="form-select">
+                        <option value="01">Januari</option>
+                        <option value="02">Februari</option>
+                        <option value="03">Maret</option>
+                        <option value="04">April</option>
+                        <option value="05">Mei</option>
+                        <option value="06">Juni</option>
+                        <option value="07">Juli</option>
+                        <option value="08">Agustus</option>
+                        <option value="09">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                      </select>
+                    </div>
+                    <div class="col-6" id="laporan-terlambat-semester-container" style="display: none;">
+                      <label for="laporan-terlambat-semester" class="form-label font-semibold">Semester</label>
+                      <select id="laporan-terlambat-semester" class="form-select">
+                        <option value="genap">Semester Genap</option>
+                        <option value="ganjil">Semester Ganjil</option>
+                      </select>
+                    </div>
+                    <div class="col-6" id="laporan-terlambat-tahun-container">
+                      <label for="laporan-terlambat-tahun" class="form-label font-semibold">Tahun</label>
+                      <select id="laporan-terlambat-tahun" class="form-select">
+                        <option value="2026">2026</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Column 3: Scope -->
+                <div class="col-md-4 mb-3">
+                  <label class="form-label font-semibold mb-2 d-flex">Tingkat Laporan (Scope)</label>
+                  <div class="segmented-control" id="laporan-terlambat-scope-segmented">
+                    <button type="button" class="segment-button active" id="btn-seg-terlambat-semua" onclick="setLaporanScope('terlambat', 'semua')">Semua</button>
+                    <button type="button" class="segment-button" id="btn-seg-terlambat-kelas" onclick="setLaporanScope('terlambat', 'kelas')">Per Kelas</button>
+                    <button type="button" class="segment-button" id="btn-seg-terlambat-siswa" onclick="setLaporanScope('terlambat', 'siswa')">Per Siswa</button>
+                  </div>
+                  <input type="hidden" id="laporan-terlambat-scope" value="semua">
+                </div>
+              </div>
+
+              <!-- Dynamic Filter inputs for Keterlambatan -->
+              <div class="row mt-2">
+                <!-- Class filter container -->
+                <div class="col-12 mb-3" id="laporan-terlambat-kelas-container" style="display: none;">
+                  <label for="laporan-terlambat-kelas" class="form-label font-semibold">Pilih Kelas</label>
+                  <select id="laporan-terlambat-kelas" class="form-select">
+                    <!-- Populated dynamically -->
+                    <option value="">Pilih Kelas</option>
+                  </select>
+                </div>
+
+                <!-- Student filter container -->
+                <div class="col-12 mb-3" id="laporan-terlambat-siswa-container" style="display: none;">
+                  <label class="form-label font-semibold">Cari Siswa</label>
+                  <div class="search-box mb-2">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="laporan-terlambat-siswa-search" class="form-input" placeholder="Ketik nama, NISN, atau kelas untuk mencari..." onkeyup="searchStudentForLaporan('terlambat')">
+                  </div>
+                  <input type="hidden" id="laporan-terlambat-siswa-id">
+                  <div class="student-search-results-wrapper" id="laporan-terlambat-siswa-results-wrapper" style="display: none;">
+                    <div class="custom-table-container max-h-400">
+                      <table class="minimal-table">
+                        <thead>
+                          <tr>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>NISN</th>
+                            <th width="120" class="text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody id="laporan-terlambat-siswa-results-body">
+                          <!-- Populated dynamically -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-top pt-4 mt-2">
+                <button class="btn btn-warning btn-lg btn-icon-text w-100" onclick="downloadLaporanTerlambat()">
+                  <i data-lucide="file-spreadsheet"></i>
+                  <span>Ekspor Laporan Keterlambatan (.xlsx)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Laporan Pelanggaran -->
+          <div class="dashboard-card card-full laporan-tab-content" id="laporan-tab-pelanggaran-content" style="display: none;">
+            <div class="card-header border-bottom">
+              <div>
+                <h2>Laporan Periodik Pelanggaran</h2>
+                <p class="subtitle mt-1">Ekspor daftar rincian dan rekap kasus pelanggaran siswa bulanan, semester, atau tahunan ke berkas Excel (.xlsx)</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <!-- Column 1: Jenis Periode -->
+                <div class="col-md-4 mb-3">
+                  <label for="laporan-pelanggaran-period-type" class="form-label font-semibold">Jenis Periode</label>
+                  <select id="laporan-pelanggaran-period-type" class="form-select" onchange="handleLaporanPeriodTypeChange('pelanggaran')">
+                    <option value="bulanan">Bulanan</option>
+                    <option value="semester">Per Semester</option>
+                    <option value="tahunan">Per Tahun</option>
+                  </select>
+                </div>
+
+                <!-- Column 2: Detail Waktu -->
+                <div class="col-md-4 mb-3">
+                  <div class="row">
+                    <div class="col-6" id="laporan-pelanggaran-bulan-container">
+                      <label for="laporan-pelanggaran-bulan" class="form-label font-semibold">Bulan</label>
+                      <select id="laporan-pelanggaran-bulan" class="form-select">
+                        <option value="01">Januari</option>
+                        <option value="02">Februari</option>
+                        <option value="03">Maret</option>
+                        <option value="04">April</option>
+                        <option value="05">Mei</option>
+                        <option value="06">Juni</option>
+                        <option value="07">Juli</option>
+                        <option value="08">Agustus</option>
+                        <option value="09">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                      </select>
+                    </div>
+                    <div class="col-6" id="laporan-pelanggaran-semester-container" style="display: none;">
+                      <label for="laporan-pelanggaran-semester" class="form-label font-semibold">Semester</label>
+                      <select id="laporan-pelanggaran-semester" class="form-select">
+                        <option value="genap">Semester Genap</option>
+                        <option value="ganjil">Semester Ganjil</option>
+                      </select>
+                    </div>
+                    <div class="col-6" id="laporan-pelanggaran-tahun-container">
+                      <label for="laporan-pelanggaran-tahun" class="form-label font-semibold">Tahun</label>
+                      <select id="laporan-pelanggaran-tahun" class="form-select">
+                        <option value="2026">2026</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Column 3: Scope -->
+                <div class="col-md-4 mb-3">
+                  <label class="form-label font-semibold mb-2 d-flex">Tingkat Laporan (Scope)</label>
+                  <div class="segmented-control" id="laporan-pelanggaran-scope-segmented">
+                    <button type="button" class="segment-button active" id="btn-seg-pelanggaran-semua" onclick="setLaporanScope('pelanggaran', 'semua')">Semua</button>
+                    <button type="button" class="segment-button" id="btn-seg-pelanggaran-kelas" onclick="setLaporanScope('pelanggaran', 'kelas')">Per Kelas</button>
+                    <button type="button" class="segment-button" id="btn-seg-pelanggaran-siswa" onclick="setLaporanScope('pelanggaran', 'siswa')">Per Siswa</button>
+                  </div>
+                  <input type="hidden" id="laporan-pelanggaran-scope" value="semua">
+                </div>
+              </div>
+
+              <!-- Dynamic Filter inputs for Pelanggaran -->
+              <div class="row mt-2">
+                <!-- Class filter container -->
+                <div class="col-12 mb-3" id="laporan-pelanggaran-kelas-container" style="display: none;">
+                  <label for="laporan-pelanggaran-kelas" class="form-label font-semibold">Pilih Kelas</label>
+                  <select id="laporan-pelanggaran-kelas" class="form-select">
+                    <!-- Populated dynamically -->
+                    <option value="">Pilih Kelas</option>
+                  </select>
+                </div>
+
+                <!-- Student filter container -->
+                <div class="col-12 mb-3" id="laporan-pelanggaran-siswa-container" style="display: none;">
+                  <label class="form-label font-semibold">Cari Siswa</label>
+                  <div class="search-box mb-2">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="laporan-pelanggaran-siswa-search" class="form-input" placeholder="Ketik nama, NISN, atau kelas untuk mencari..." onkeyup="searchStudentForLaporan('pelanggaran')">
+                  </div>
+                  <input type="hidden" id="laporan-pelanggaran-siswa-id">
+                  <div class="student-search-results-wrapper" id="laporan-pelanggaran-siswa-results-wrapper" style="display: none;">
+                    <div class="custom-table-container max-h-400">
+                      <table class="minimal-table">
+                        <thead>
+                          <tr>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>NISN</th>
+                            <th width="120" class="text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody id="laporan-pelanggaran-siswa-results-body">
+                          <!-- Populated dynamically -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-top pt-4 mt-2">
+                <button class="btn btn-danger btn-lg btn-icon-text w-100" onclick="downloadLaporanPelanggaran()">
+                  <i data-lucide="file-spreadsheet"></i>
+                  <span>Ekspor Laporan Pelanggaran (.xlsx)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= GITHUB SETTINGS VIEW ================= -->
+        <!-- View Removed -->
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal/Popup Notification Container -->
+  <div class="notification-toast-container" id="toast-container"></div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loading-overlay" style="display: none;">
+    <div class="spinner-container">
+      <div class="double-bounce-spinner">
+        <div class="double-bounce1"></div>
+        <div class="double-bounce2"></div>
+      </div>
+      <p id="loading-text" class="mt-3">Menghubungkan ke GitHub...</p>
+    </div>
+  </div>
+
+  <!-- Student Add/Edit Modal (For manual adjustments if needed) -->
+  <div class="modal-overlay" id="student-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="student-modal-title">Tambah Siswa Baru</h3>
+        <button class="modal-close-btn" onclick="closeStudentModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-student-detail" onsubmit="handleStudentFormSubmit(event)">
+          <input type="hidden" id="student-modal-id">
+          
+          <div class="form-group mb-3">
+            <label for="student-modal-nama">Nama Lengkap <span class="required">*</span></label>
+            <input type="text" id="student-modal-nama" class="form-input" required placeholder="Nama Siswa">
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="student-modal-nisn">NISN <span class="required">*</span></label>
+            <input type="text" id="student-modal-nisn" class="form-input" required placeholder="10 Digit NISN">
+          </div>
+
+          <div class="form-group mb-4">
+            <label for="student-modal-kelas">Kelas <span class="required">*</span></label>
+            <input type="text" id="student-modal-kelas" class="form-input" required placeholder="Contoh: XII RPL 1">
+          </div>
+
+          <div class="modal-footer text-right">
+            <button type="button" class="btn btn-secondary mr-2" onclick="closeStudentModal()">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script logic -->
+  <script src="app.js"></script>
+</body>
+</html>
+
