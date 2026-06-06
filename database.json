@@ -19,7 +19,29 @@
       "kelas": "VII"
     }
   ],
-  "attendance": [],
+  "attendance": [
+    {
+      "id": "2026-06-06_1023456789",
+      "student_id": "1023456789",
+      "tanggal": "2026-06-06",
+      "status": "alpha",
+      "keterangan": ""
+    },
+    {
+      "id": "2026-06-06_1098765432",
+      "student_id": "1098765432",
+      "tanggal": "2026-06-06",
+      "status": "alpha",
+      "keterangan": ""
+    },
+    {
+      "id": "2026-06-06_1054321678",
+      "student_id": "1054321678",
+      "tanggal": "2026-06-06",
+      "status": "hadir",
+      "keterangan": ""
+    }
+  ],
   "lateLogs": [],
   "violations": []
 }
