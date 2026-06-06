@@ -23,10 +23,8 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="logo-icon">
-          <i data-lucide="graduation-cap"></i>
-        </div>
-        <span class="logo-text">AbsenSiswa-SMPN3-Batam</span>
+        <img src="logo.png" alt="Logo SMPN 3 Batam" class="logo-img">
+        <span class="logo-text">SMPN 3 Batam</span>
       </div>
       
       <nav class="sidebar-menu">
@@ -46,14 +44,35 @@
           <i data-lucide="clock"></i>
           <span>Siswa Terlambat</span>
         </button>
+        <button class="menu-item" id="btn-menu-pelanggaran" onclick="switchMenu('pelanggaran')">
+          <i data-lucide="shield-alert"></i>
+          <span>Catatan Pelanggaran</span>
+        </button>
         <button class="menu-item" id="btn-menu-rekap" onclick="switchMenu('rekap')">
           <i data-lucide="clipboard-list"></i>
           <span>Rekap Data</span>
         </button>
-        <button class="menu-item" id="btn-menu-laporan" onclick="switchMenu('laporan')">
-          <i data-lucide="download"></i>
-          <span>Unduh Laporan</span>
-        </button>
+        <div class="sidebar-submenu-group" id="submenu-laporan-group">
+          <button class="menu-item" id="btn-menu-laporan" onclick="toggleLaporanSubmenu(event)">
+            <i data-lucide="download"></i>
+            <span>Unduh Laporan</span>
+            <i data-lucide="chevron-down" class="submenu-chevron" id="laporan-chevron"></i>
+          </button>
+          <div class="sidebar-submenu" id="sidebar-laporan-submenu" style="display: none;">
+            <button class="submenu-item" id="btn-submenu-laporan-absensi" onclick="switchLaporanSubmenu('absensi')">
+              <i data-lucide="calendar-check"></i>
+              <span>Laporan Absensi</span>
+            </button>
+            <button class="submenu-item" id="btn-submenu-laporan-terlambat" onclick="switchLaporanSubmenu('terlambat')">
+              <i data-lucide="clock"></i>
+              <span>Laporan Keterlambatan</span>
+            </button>
+            <button class="submenu-item" id="btn-submenu-laporan-pelanggaran" onclick="switchLaporanSubmenu('pelanggaran')">
+              <i data-lucide="shield-alert"></i>
+              <span>Laporan Pelanggaran</span>
+            </button>
+          </div>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
@@ -139,6 +158,17 @@
                 <h3>Terlambat Hari Ini</h3>
                 <p class="stat-number" id="dash-total-terlambat">0</p>
                 <span class="stat-trend text-warning" id="dash-terlambat-subtext">Siswa datang terlambat</span>
+              </div>
+            </div>
+
+            <div class="stat-card red-glow">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #f43f5e, #e11d48); box-shadow: 0 4px 14px rgba(225, 29, 72, 0.3);">
+                <i data-lucide="shield-alert"></i>
+              </div>
+              <div class="stat-info">
+                <h3>Pelanggaran Hari Ini</h3>
+                <p class="stat-number" id="dash-total-pelanggaran">0</p>
+                <span class="stat-trend text-danger" id="dash-pelanggaran-subtext">Pelanggaran dicatat</span>
               </div>
             </div>
           </div>
@@ -461,6 +491,94 @@
           </div>
         </section>
 
+        <!-- ================= CATATAN PELANGGARAN VIEW ================= -->
+        <section id="view-pelanggaran" class="content-view">
+          <div class="row">
+            <!-- Form Input Pelanggaran -->
+            <div class="col-md-5">
+              <div class="dashboard-card">
+                <div class="card-header border-bottom">
+                  <h2>Catat Pelanggaran Siswa</h2>
+                </div>
+                <div class="card-body">
+                  <form id="form-pelanggaran" onsubmit="handleViolationSubmit(event)">
+                    
+                    <div class="form-group mb-3">
+                      <label for="pelanggaran-siswa-select">Pilih Siswa <span class="required">*</span></label>
+                      <div class="searchable-select-container">
+                        <input type="text" id="pelanggaran-search-input" class="form-input" placeholder="Cari nama atau NISN siswa..." onfocus="showViolationStudentDropdown()" onkeyup="filterViolationStudentDropdown()">
+                        <div class="select-dropdown-list" id="pelanggaran-dropdown-list" style="display: none;">
+                          <!-- Populated by JS -->
+                        </div>
+                        <input type="hidden" id="pelanggaran-siswa-id" required>
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                      <label for="pelanggaran-kelas-display">Kelas</label>
+                      <input type="text" id="pelanggaran-kelas-display" class="form-input" readonly placeholder="Terisi otomatis..." style="background: rgba(255,255,255,0.05)">
+                    </div>
+
+                    <div class="row">
+                      <div class="col-6">
+                        <div class="form-group mb-3">
+                          <label for="pelanggaran-tanggal">Tanggal <span class="required">*</span></label>
+                          <input type="date" id="pelanggaran-tanggal" class="form-input" required>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="form-group mb-3">
+                          <label for="pelanggaran-jam">Jam Kejadian <span class="required">*</span></label>
+                          <input type="time" id="pelanggaran-jam" class="form-input" required>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-4">
+                      <label for="pelanggaran-keterangan">Keterangan / Rincian Pelanggaran <span class="required">*</span></label>
+                      <textarea id="pelanggaran-keterangan" class="form-input" rows="3" placeholder="Contoh: Merokok di kantin, Atribut seragam tidak lengkap, dll." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100 btn-lg">
+                      <i data-lucide="plus-circle"></i> Catat Pelanggaran
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- List Recent Violation Logs -->
+            <div class="col-md-7">
+              <div class="dashboard-card">
+                <div class="card-header border-bottom d-flex justify-between align-center">
+                  <h2>Log Pelanggaran Siswa Hari Ini</h2>
+                  <span class="badge badge-danger" id="pelanggaran-today-badge">0 Kasus</span>
+                </div>
+                <div class="card-body">
+                  <div class="custom-table-container max-h-500">
+                    <table class="styled-table">
+                      <thead>
+                        <tr>
+                          <th>Nama</th>
+                          <th>Kelas</th>
+                          <th width="100">Jam</th>
+                          <th>Pelanggaran</th>
+                          <th width="80" class="text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody id="pelanggaran-today-table-body">
+                        <tr>
+                          <td colspan="5" class="text-center text-muted">Belum ada pelanggaran yang dicatat hari ini.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- ================= REKAP DATA VIEW ================= -->
         <section id="view-rekap" class="content-view">
           <!-- Filter Rekap -->
@@ -513,6 +631,9 @@
             </button>
             <button class="tab-button" id="tab-rekap-terlambat" onclick="switchRekapTab('terlambat')">
               <i data-lucide="clock" class="mr-1 v-middle"></i> Rekap Siswa Terlambat
+            </button>
+            <button class="tab-button" id="tab-rekap-pelanggaran" onclick="switchRekapTab('pelanggaran')">
+              <i data-lucide="shield-alert" class="mr-1 v-middle"></i> Rekap Pelanggaran
             </button>
           </div>
 
@@ -576,24 +697,65 @@
               </div>
             </div>
           </div>
+
+          <!-- Tab Content: Rekap Pelanggaran -->
+          <div class="dashboard-card card-full rekap-tab-content" id="rekap-tab-pelanggaran-content" style="display: none;">
+            <div class="card-header border-bottom">
+              <h2>Log Akumulasi Frekuensi Pelanggaran Siswa Per Bulan</h2>
+              <p class="subtitle mt-1" id="rekap-pelanggaran-subtitle">Bulan: - | Kelas: Semua Kelas</p>
+            </div>
+            <div class="card-body">
+              <div class="custom-table-container">
+                <table class="styled-table text-center-headers">
+                  <thead>
+                    <tr>
+                      <th width="60">No</th>
+                      <th class="text-left">Nama Siswa</th>
+                      <th width="100">Kelas</th>
+                      <th width="120">NISN</th>
+                      <th width="150" class="text-center text-danger font-semibold">Jumlah Pelanggaran</th>
+                      <th>Rincian Tanggal & Keterangan Pelanggaran</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rekap-pelanggaran-table-body">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted">Belum ada data pelanggaran untuk filter terpilih.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- ================= UNDUH LAPORAN VIEW ================= -->
         <section id="view-laporan" class="content-view">
-          <div class="row">
-            <!-- Unduh Laporan Absensi Card -->
-            <div class="col-md-6 mb-4">
-              <div class="dashboard-card hover-lift green-glow">
-                <div class="card-header border-bottom text-center py-4">
-                  <div class="card-header-icon bg-success-soft">
-                    <i data-lucide="calendar-check" class="text-success large-icon"></i>
-                  </div>
-                  <h2 class="mt-3">Laporan Bulanan Absensi Siswa</h2>
-                  <p class="subtitle">Unduh ringkasan data kehadiran siswa per kelas dalam format spreadsheet Excel (.xlsx).</p>
-                </div>
-                <div class="card-body py-4">
-                  <div class="row mb-4">
-                    <div class="col-12 col-md-4 mb-2">
+          <!-- Submenu Laporan (Tabs) -->
+          <div class="tab-container mb-4">
+            <button class="tab-button active" id="tab-laporan-absensi" onclick="switchLaporanTab('absensi')">
+              <i data-lucide="calendar-check" class="mr-1 v-middle"></i> Laporan Absensi
+            </button>
+            <button class="tab-button" id="tab-laporan-terlambat" onclick="switchLaporanTab('terlambat')">
+              <i data-lucide="clock" class="mr-1 v-middle"></i> Laporan Keterlambatan
+            </button>
+            <button class="tab-button" id="tab-laporan-pelanggaran" onclick="switchLaporanTab('pelanggaran')">
+              <i data-lucide="shield-alert" class="mr-1 v-middle"></i> Laporan Pelanggaran
+            </button>
+          </div>
+
+          <!-- Tab 1: Laporan Absensi -->
+          <div class="dashboard-card card-full laporan-tab-content active" id="laporan-tab-absensi-content">
+            <div class="card-header border-bottom">
+              <div>
+                <h2>Laporan Bulanan Absensi Siswa</h2>
+                <p class="subtitle mt-1">Ekspor ringkasan kehadiran siswa per bulan dalam format Excel (.xlsx)</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="row">
+                    <div class="col-6">
                       <label for="laporan-absen-bulan" class="form-label font-semibold">Bulan</label>
                       <select id="laporan-absen-bulan" class="form-select">
                         <option value="01">Januari</option>
@@ -610,40 +772,86 @@
                         <option value="12">Desember</option>
                       </select>
                     </div>
-                    <div class="col-12 col-md-4 mb-2">
+                    <div class="col-6">
                       <label for="laporan-absen-tahun" class="form-label font-semibold">Tahun</label>
                       <select id="laporan-absen-tahun" class="form-select">
-                        <!-- Populated by JS -->
                         <option value="2026">2026</option>
                       </select>
                     </div>
-                    <div class="col-12 col-md-4 mb-2">
-                      <label for="laporan-absen-kelas" class="form-label font-semibold">Kelas</label>
-                      <select id="laporan-absen-kelas" class="form-select">
-                        <option value="">Semua Kelas</option>
-                      </select>
-                    </div>
                   </div>
-                  <button class="btn btn-success w-100 btn-lg btn-icon-text" onclick="downloadLaporanAbsensi()">
-                    <i data-lucide="file-spreadsheet"></i>
-                    <span>Ekspor ke Excel (.xlsx)</span>
-                  </button>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label font-semibold mb-2 d-flex">Tingkat Laporan (Scope)</label>
+                  <div class="segmented-control" id="laporan-absen-scope-segmented">
+                    <button type="button" class="segment-button active" id="btn-seg-absen-semua" onclick="setLaporanScope('absen', 'semua')">Semua</button>
+                    <button type="button" class="segment-button" id="btn-seg-absen-kelas" onclick="setLaporanScope('absen', 'kelas')">Per Kelas</button>
+                    <button type="button" class="segment-button" id="btn-seg-absen-siswa" onclick="setLaporanScope('absen', 'siswa')">Per Siswa</button>
+                  </div>
+                  <input type="hidden" id="laporan-absen-scope" value="semua">
                 </div>
               </div>
-            </div>
 
-            <!-- Unduh Laporan Keterlambatan Card -->
-            <div class="col-md-6 mb-4">
-              <div class="dashboard-card hover-lift orange-glow">
-                <div class="card-header border-bottom text-center py-4">
-                  <div class="card-header-icon bg-warning-soft">
-                    <i data-lucide="clock" class="text-warning large-icon"></i>
-                  </div>
-                  <h2 class="mt-3">Laporan Bulanan Siswa Terlambat</h2>
-                  <p class="subtitle">Unduh log daftar rincian dan frekuensi keterlambatan siswa dalam format Excel (.xlsx).</p>
+              <!-- Dynamic Filter inputs for Absensi -->
+              <div class="row mt-2">
+                <!-- Class filter container -->
+                <div class="col-12 mb-3" id="laporan-absen-kelas-container" style="display: none;">
+                  <label for="laporan-absen-kelas" class="form-label font-semibold">Pilih Kelas</label>
+                  <select id="laporan-absen-kelas" class="form-select">
+                    <!-- Populated dynamically -->
+                    <option value="">Pilih Kelas</option>
+                  </select>
                 </div>
-                <div class="card-body py-4">
-                  <div class="row mb-4">
+
+                <!-- Student filter container -->
+                <div class="col-12 mb-3" id="laporan-absen-siswa-container" style="display: none;">
+                  <label class="form-label font-semibold">Cari Siswa</label>
+                  <div class="search-box mb-2">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="laporan-absen-siswa-search" class="form-input" placeholder="Ketik nama, NISN, atau kelas untuk mencari..." onkeyup="searchStudentForLaporan('absen')">
+                  </div>
+                  <input type="hidden" id="laporan-absen-siswa-id">
+                  <div class="student-search-results-wrapper" id="laporan-absen-siswa-results-wrapper" style="display: none;">
+                    <div class="custom-table-container max-h-400">
+                      <table class="minimal-table">
+                        <thead>
+                          <tr>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>NISN</th>
+                            <th width="120" class="text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody id="laporan-absen-siswa-results-body">
+                          <!-- Populated dynamically -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-top pt-4 mt-2">
+                <button class="btn btn-success btn-lg btn-icon-text w-100" onclick="downloadLaporanAbsensi()">
+                  <i data-lucide="file-spreadsheet"></i>
+                  <span>Ekspor Laporan Absensi (.xlsx)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Laporan Keterlambatan -->
+          <div class="dashboard-card card-full laporan-tab-content" id="laporan-tab-terlambat-content" style="display: none;">
+            <div class="card-header border-bottom">
+              <div>
+                <h2>Laporan Bulanan Siswa Terlambat</h2>
+                <p class="subtitle mt-1">Ekspor daftar rincian dan rekap keterlambatan siswa per bulan ke berkas Excel (.xlsx)</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="row">
                     <div class="col-6">
                       <label for="laporan-terlambat-bulan" class="form-label font-semibold">Bulan</label>
                       <select id="laporan-terlambat-bulan" class="form-select">
@@ -664,16 +872,164 @@
                     <div class="col-6">
                       <label for="laporan-terlambat-tahun" class="form-label font-semibold">Tahun</label>
                       <select id="laporan-terlambat-tahun" class="form-select">
-                        <!-- Populated by JS -->
                         <option value="2026">2026</option>
                       </select>
                     </div>
                   </div>
-                  <button class="btn btn-warning w-100 btn-lg btn-icon-text" onclick="downloadLaporanTerlambat()">
-                    <i data-lucide="file-spreadsheet"></i>
-                    <span>Ekspor ke Excel (.xlsx)</span>
-                  </button>
                 </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label font-semibold mb-2 d-flex">Tingkat Laporan (Scope)</label>
+                  <div class="segmented-control" id="laporan-terlambat-scope-segmented">
+                    <button type="button" class="segment-button active" id="btn-seg-terlambat-semua" onclick="setLaporanScope('terlambat', 'semua')">Semua</button>
+                    <button type="button" class="segment-button" id="btn-seg-terlambat-kelas" onclick="setLaporanScope('terlambat', 'kelas')">Per Kelas</button>
+                    <button type="button" class="segment-button" id="btn-seg-terlambat-siswa" onclick="setLaporanScope('terlambat', 'siswa')">Per Siswa</button>
+                  </div>
+                  <input type="hidden" id="laporan-terlambat-scope" value="semua">
+                </div>
+              </div>
+
+              <!-- Dynamic Filter inputs for Keterlambatan -->
+              <div class="row mt-2">
+                <!-- Class filter container -->
+                <div class="col-12 mb-3" id="laporan-terlambat-kelas-container" style="display: none;">
+                  <label for="laporan-terlambat-kelas" class="form-label font-semibold">Pilih Kelas</label>
+                  <select id="laporan-terlambat-kelas" class="form-select">
+                    <!-- Populated dynamically -->
+                    <option value="">Pilih Kelas</option>
+                  </select>
+                </div>
+
+                <!-- Student filter container -->
+                <div class="col-12 mb-3" id="laporan-terlambat-siswa-container" style="display: none;">
+                  <label class="form-label font-semibold">Cari Siswa</label>
+                  <div class="search-box mb-2">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="laporan-terlambat-siswa-search" class="form-input" placeholder="Ketik nama, NISN, atau kelas untuk mencari..." onkeyup="searchStudentForLaporan('terlambat')">
+                  </div>
+                  <input type="hidden" id="laporan-terlambat-siswa-id">
+                  <div class="student-search-results-wrapper" id="laporan-terlambat-siswa-results-wrapper" style="display: none;">
+                    <div class="custom-table-container max-h-400">
+                      <table class="minimal-table">
+                        <thead>
+                          <tr>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>NISN</th>
+                            <th width="120" class="text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody id="laporan-terlambat-siswa-results-body">
+                          <!-- Populated dynamically -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-top pt-4 mt-2">
+                <button class="btn btn-warning btn-lg btn-icon-text w-100" onclick="downloadLaporanTerlambat()">
+                  <i data-lucide="file-spreadsheet"></i>
+                  <span>Ekspor Laporan Keterlambatan (.xlsx)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Laporan Pelanggaran -->
+          <div class="dashboard-card card-full laporan-tab-content" id="laporan-tab-pelanggaran-content" style="display: none;">
+            <div class="card-header border-bottom">
+              <div>
+                <h2>Laporan Bulanan Pelanggaran</h2>
+                <p class="subtitle mt-1">Ekspor daftar rincian dan rekap kasus pelanggaran siswa per bulan ke berkas Excel (.xlsx)</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="row">
+                    <div class="col-6">
+                      <label for="laporan-pelanggaran-bulan" class="form-label font-semibold">Bulan</label>
+                      <select id="laporan-pelanggaran-bulan" class="form-select">
+                        <option value="01">Januari</option>
+                        <option value="02">Februari</option>
+                        <option value="03">Maret</option>
+                        <option value="04">April</option>
+                        <option value="05">Mei</option>
+                        <option value="06">Juni</option>
+                        <option value="07">Juli</option>
+                        <option value="08">Agustus</option>
+                        <option value="09">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label for="laporan-pelanggaran-tahun" class="form-label font-semibold">Tahun</label>
+                      <select id="laporan-pelanggaran-tahun" class="form-select">
+                        <option value="2026">2026</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label font-semibold mb-2 d-flex">Tingkat Laporan (Scope)</label>
+                  <div class="segmented-control" id="laporan-pelanggaran-scope-segmented">
+                    <button type="button" class="segment-button active" id="btn-seg-pelanggaran-semua" onclick="setLaporanScope('pelanggaran', 'semua')">Semua</button>
+                    <button type="button" class="segment-button" id="btn-seg-pelanggaran-kelas" onclick="setLaporanScope('pelanggaran', 'kelas')">Per Kelas</button>
+                    <button type="button" class="segment-button" id="btn-seg-pelanggaran-siswa" onclick="setLaporanScope('pelanggaran', 'siswa')">Per Siswa</button>
+                  </div>
+                  <input type="hidden" id="laporan-pelanggaran-scope" value="semua">
+                </div>
+              </div>
+
+              <!-- Dynamic Filter inputs for Pelanggaran -->
+              <div class="row mt-2">
+                <!-- Class filter container -->
+                <div class="col-12 mb-3" id="laporan-pelanggaran-kelas-container" style="display: none;">
+                  <label for="laporan-pelanggaran-kelas" class="form-label font-semibold">Pilih Kelas</label>
+                  <select id="laporan-pelanggaran-kelas" class="form-select">
+                    <!-- Populated dynamically -->
+                    <option value="">Pilih Kelas</option>
+                  </select>
+                </div>
+
+                <!-- Student filter container -->
+                <div class="col-12 mb-3" id="laporan-pelanggaran-siswa-container" style="display: none;">
+                  <label class="form-label font-semibold">Cari Siswa</label>
+                  <div class="search-box mb-2">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="laporan-pelanggaran-siswa-search" class="form-input" placeholder="Ketik nama, NISN, atau kelas untuk mencari..." onkeyup="searchStudentForLaporan('pelanggaran')">
+                  </div>
+                  <input type="hidden" id="laporan-pelanggaran-siswa-id">
+                  <div class="student-search-results-wrapper" id="laporan-pelanggaran-siswa-results-wrapper" style="display: none;">
+                    <div class="custom-table-container max-h-400">
+                      <table class="minimal-table">
+                        <thead>
+                          <tr>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>NISN</th>
+                            <th width="120" class="text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody id="laporan-pelanggaran-siswa-results-body">
+                          <!-- Populated dynamically -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-top pt-4 mt-2">
+                <button class="btn btn-danger btn-lg btn-icon-text w-100" onclick="downloadLaporanPelanggaran()">
+                  <i data-lucide="file-spreadsheet"></i>
+                  <span>Ekspor Laporan Pelanggaran (.xlsx)</span>
+                </button>
               </div>
             </div>
           </div>
