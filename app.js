@@ -7,6 +7,7 @@ let state = {
   students: [],     // Array of { id, nama, nisn, kelas }
   attendance: [],   // Array of { id, student_id, tanggal, status, keterangan }
   lateLogs: [],     // Array of { id, student_id, tanggal, jam, keterangan }
+  violations: [],   // Array of { id, student_id, tanggal, jam, keterangan }
   githubSettings: {
     token: '',
     repo: '',
@@ -37,12 +38,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Trigger Lucide Icons rendering
   lucide.createIcons();
 
-  // Handle outside clicks for searchable dropdown
+  // Handle outside clicks for searchable dropdowns
   document.addEventListener('click', (e) => {
-    const container = document.querySelector('.searchable-select-container');
-    const dropdown = document.getElementById('terlambat-dropdown-list');
-    if (container && !container.contains(e.target)) {
-      dropdown.style.display = 'none';
+    const lateContainer = document.querySelector('#view-terlambat .searchable-select-container');
+    const lateDropdown = document.getElementById('terlambat-dropdown-list');
+    if (lateContainer && !lateContainer.contains(e.target) && lateDropdown) {
+      lateDropdown.style.display = 'none';
+    }
+
+    const violationContainer = document.querySelector('#view-pelanggaran .searchable-select-container');
+    const violationDropdown = document.getElementById('pelanggaran-dropdown-list');
+    if (violationContainer && !violationContainer.contains(e.target) && violationDropdown) {
+      violationDropdown.style.display = 'none';
     }
   });
 
@@ -93,6 +100,9 @@ function updateDateDisplay() {
   const dateInputTerlambat = document.getElementById('terlambat-tanggal');
   if (dateInputTerlambat) dateInputTerlambat.value = todayISO;
 
+  const dateInputPelanggaran = document.getElementById('pelanggaran-tanggal');
+  if (dateInputPelanggaran) dateInputPelanggaran.value = todayISO;
+
   // Set default hours for late log
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, '0');
@@ -100,11 +110,15 @@ function updateDateDisplay() {
   const timeInput = document.getElementById('terlambat-jam');
   if (timeInput) timeInput.value = `${hours}:${minutes}`;
 
+  const timeInputPelanggaran = document.getElementById('pelanggaran-jam');
+  if (timeInputPelanggaran) timeInputPelanggaran.value = `${hours}:${minutes}`;
+
   // Populate recap years
   const yearSelects = [
     document.getElementById('rekap-tahun'),
     document.getElementById('laporan-absen-tahun'),
-    document.getElementById('laporan-terlambat-tahun')
+    document.getElementById('laporan-terlambat-tahun'),
+    document.getElementById('laporan-pelanggaran-tahun')
   ];
   const currentYear = now.getFullYear();
   yearSelects.forEach(select => {
@@ -125,7 +139,8 @@ function updateDateDisplay() {
   const monthSelects = [
     document.getElementById('rekap-bulan'),
     document.getElementById('laporan-absen-bulan'),
-    document.getElementById('laporan-terlambat-bulan')
+    document.getElementById('laporan-terlambat-bulan'),
+    document.getElementById('laporan-pelanggaran-bulan')
   ];
   monthSelects.forEach(select => {
     if (select) {
@@ -166,6 +181,7 @@ function loadData() {
         state.students = parsed.students || [];
         state.attendance = parsed.attendance || [];
         state.lateLogs = parsed.lateLogs || [];
+        state.violations = parsed.violations || [];
       } catch (e) {
         console.error('Error parsing local DB', e);
         showToast('Gagal memuat database lokal, file rusak.', 'error');
@@ -180,7 +196,8 @@ function saveLocalState() {
   const dbData = {
     students: state.students,
     attendance: state.attendance,
-    lateLogs: state.lateLogs
+    lateLogs: state.lateLogs,
+    violations: state.violations
   };
   localStorage.setItem('schoolDb', JSON.stringify(dbData));
 }
@@ -375,6 +392,7 @@ async function syncPullFromGithub(silent = false) {
     state.students = parsedDb.students || [];
     state.attendance = parsedDb.attendance || [];
     state.lateLogs = parsedDb.lateLogs || [];
+    state.violations = parsedDb.violations || [];
 
     // Save copy locally
     saveLocalState();
@@ -423,7 +441,8 @@ async function syncPushToGithub(isNewFile = false) {
     const dbPayload = {
       students: state.students,
       attendance: state.attendance,
-      lateLogs: state.lateLogs
+      lateLogs: state.lateLogs,
+      violations: state.violations
     };
     
     const base64Content = btoa(unescape(encodeURIComponent(JSON.stringify(dbPayload, null, 2))));
@@ -499,8 +518,19 @@ function switchMenu(menuName) {
   views.forEach(view => view.classList.remove('active'));
 
   // Deactivate all sidebar items
-  const menuButtons = document.querySelectorAll('.sidebar-menu .menu-item, .sidebar-footer .menu-item');
+  const menuButtons = document.querySelectorAll('.sidebar-menu .menu-item, .sidebar-footer .menu-item, .sidebar-submenu .submenu-item');
   menuButtons.forEach(btn => btn.classList.remove('active'));
+
+  // Manage sidebar submenu state
+  const submenuGroup = document.getElementById('submenu-laporan-group');
+  const submenu = document.getElementById('sidebar-laporan-submenu');
+  if (menuName !== 'laporan') {
+    if (submenuGroup) submenuGroup.classList.remove('open');
+    if (submenu) submenu.style.display = 'none';
+  } else {
+    if (submenuGroup) submenuGroup.classList.add('open');
+    if (submenu) submenu.style.display = 'flex';
+  }
 
   // Show selected view
   const targetView = document.getElementById(`view-${menuName}`);
@@ -533,6 +563,10 @@ function switchMenu(menuName) {
     titleEl.textContent = 'Siswa Terlambat';
     subtitleEl.textContent = 'Input pencatatan jam dan keterangan siswa datang terlambat';
     renderLateLogsToday();
+  } else if (menuName === 'pelanggaran') {
+    titleEl.textContent = 'Catatan Pelanggaran Siswa';
+    subtitleEl.textContent = 'Pencatatan rincian kejadian dan jenis pelanggaran aturan sekolah';
+    renderViolationsToday();
   } else if (menuName === 'rekap') {
     titleEl.textContent = 'Rekapitulasi Data';
     subtitleEl.textContent = 'Rangkuman dan riwayat absensi & keterlambatan per bulan';
@@ -541,7 +575,7 @@ function switchMenu(menuName) {
   } else if (menuName === 'laporan') {
     titleEl.textContent = 'Unduh Laporan Bulanan';
     subtitleEl.textContent = 'Ekspor hasil rekapitulasi data siswa ke berkas Microsoft Excel';
-    populateClassSelect('laporan-absen-kelas');
+    switchLaporanTab('absensi');
   } else if (menuName === 'github') {
     titleEl.textContent = 'Integrasi Awan GitHub';
     subtitleEl.textContent = 'Konfigurasi akun dan repositori database online';
@@ -562,6 +596,7 @@ function refreshAllUI() {
   if (state.currentView === 'upload') renderStudentListTable();
   if (state.currentView === 'absensi') loadAttendanceGrid();
   if (state.currentView === 'terlambat') renderLateLogsToday();
+  if (state.currentView === 'pelanggaran') renderViolationsToday();
   if (state.currentView === 'rekap') loadRekapData();
 }
 
@@ -1186,6 +1221,151 @@ async function deleteLateLog(logId) {
 }
 
 // ==========================================================================
+// MENU: CATATAN PELANGGARAN SISWA
+// ==========================================================================
+
+function showViolationStudentDropdown() {
+  const list = document.getElementById('pelanggaran-dropdown-list');
+  list.innerHTML = '';
+  
+  if (state.students.length === 0) {
+    list.innerHTML = '<div class="dropdown-item text-muted">Belum ada data siswa. Impor dahulu.</div>';
+    list.style.display = 'block';
+    return;
+  }
+
+  filterViolationStudentDropdown();
+  list.style.display = 'block';
+}
+
+function filterViolationStudentDropdown() {
+  const query = document.getElementById('pelanggaran-search-input').value.toLowerCase().trim();
+  const list = document.getElementById('pelanggaran-dropdown-list');
+  list.innerHTML = '';
+
+  const filtered = state.students.filter(s => 
+    s.nama.toLowerCase().includes(query) || s.nisn.includes(query) || s.kelas.toLowerCase().includes(query)
+  ).slice(0, 8);
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="dropdown-item text-muted">Siswa tidak ditemukan</div>';
+    return;
+  }
+
+  filtered.forEach(std => {
+    const item = document.createElement('div');
+    item.className = 'dropdown-item';
+    item.innerHTML = `
+      <span class="item-nama font-semibold">${std.nama}</span>
+      <span class="item-kelas">${std.kelas}</span>
+    `;
+    item.onclick = () => selectStudentForViolation(std);
+    list.appendChild(item);
+  });
+}
+
+function selectStudentForViolation(student) {
+  document.getElementById('pelanggaran-search-input').value = student.nama;
+  document.getElementById('pelanggaran-siswa-id').value = student.id;
+  document.getElementById('pelanggaran-kelas-display').value = student.kelas;
+  document.getElementById('pelanggaran-dropdown-list').style.display = 'none';
+}
+
+async function handleViolationSubmit(event) {
+  event.preventDefault();
+
+  const studentId = document.getElementById('pelanggaran-siswa-id').value;
+  const tanggal = document.getElementById('pelanggaran-tanggal').value;
+  const jam = document.getElementById('pelanggaran-jam').value;
+  const keterangan = document.getElementById('pelanggaran-keterangan').value.trim();
+
+  if (!studentId || !tanggal || !jam || !keterangan) {
+    showToast('Harap pilih siswa, tanggal, jam, dan isi keterangan pelanggaran!', 'warning');
+    return;
+  }
+
+  toggleLoader(true, 'Mencatat pelanggaran...');
+  try {
+    const newViolation = {
+      id: `violation_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      student_id: studentId,
+      tanggal,
+      jam,
+      keterangan
+    };
+
+    state.violations = state.violations || [];
+    state.violations.push(newViolation);
+    await persistData();
+
+    // Reset Form except date
+    document.getElementById('pelanggaran-siswa-id').value = '';
+    document.getElementById('pelanggaran-search-input').value = '';
+    document.getElementById('pelanggaran-kelas-display').value = '';
+    document.getElementById('pelanggaran-keterangan').value = '';
+    
+    // Refresh list
+    renderViolationsToday();
+    showToast('Pelanggaran berhasil dicatat!', 'success');
+  } catch (error) {
+    showToast(`Gagal mencatat: ${error.message}`, 'error');
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+function renderViolationsToday() {
+  const tanggal = document.getElementById('pelanggaran-tanggal').value;
+  const body = document.getElementById('pelanggaran-today-table-body');
+  const badge = document.getElementById('pelanggaran-today-badge');
+
+  body.innerHTML = '';
+  
+  if (!tanggal) return;
+
+  state.violations = state.violations || [];
+  const todayViolations = state.violations.filter(v => v.tanggal === tanggal);
+  badge.textContent = `${todayViolations.length} Kasus`;
+
+  if (todayViolations.length === 0) {
+    body.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Belum ada pelanggaran dicatat pada tanggal ini.</td></tr>`;
+    return;
+  }
+
+  todayViolations.forEach((log) => {
+    const student = state.students.find(s => s.id === log.student_id) || { nama: 'Siswa Terhapus', kelas: '-', nisn: '-' };
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="font-semibold">${student.nama}</td>
+      <td><span class="badge badge-success" style="background-color: var(--color-primary-glow); color: var(--color-primary);">${student.kelas}</span></td>
+      <td class="text-danger font-semibold"><i data-lucide="clock" class="v-middle mr-1" style="width:14px;height:14px;"></i>${log.jam}</td>
+      <td>${log.keterangan}</td>
+      <td class="text-center">
+        <button class="btn btn-danger btn-sm" onclick="deleteViolationLog('${log.id}')" title="Hapus Catatan"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+  lucide.createIcons();
+}
+
+async function deleteViolationLog(logId) {
+  if (!confirm('Hapus catatan pelanggaran ini?')) return;
+
+  toggleLoader(true, 'Menghapus catatan...');
+  try {
+    state.violations = state.violations.filter(v => v.id !== logId);
+    await persistData();
+    renderViolationsToday();
+    showToast('Catatan pelanggaran dihapus.', 'success');
+  } catch (error) {
+    showToast(`Gagal menghapus: ${error.message}`, 'error');
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+// ==========================================================================
 // MENU 4: REKAP DATA SISWA
 // ==========================================================================
 
@@ -1221,8 +1401,10 @@ function loadRekapData() {
 
   if (activeRekapTab === 'absensi') {
     renderRekapAbsensi(bulan, tahun, kelas, search);
-  } else {
+  } else if (activeRekapTab === 'terlambat') {
     renderRekapTerlambat(bulan, tahun, kelas, search);
+  } else if (activeRekapTab === 'pelanggaran') {
+    renderRekapPelanggaran(bulan, tahun, kelas, search);
   }
 }
 
@@ -1341,23 +1523,295 @@ function renderRekapTerlambat(bulan, tahun, kelas, search) {
   }
 }
 
-// ==========================================================================
-// MENU 5: UNDUH LAPORAN
-// ==========================================================================
-
-function downloadLaporanAbsensi() {
-  const bulan = document.getElementById('laporan-absen-bulan').value;
-  const tahun = document.getElementById('laporan-absen-tahun').value;
-  const kelas = document.getElementById('laporan-absen-kelas').value;
-  const labelBulan = document.getElementById('laporan-absen-bulan').options[document.getElementById('laporan-absen-bulan').selectedIndex].text;
+function renderRekapPelanggaran(bulan, tahun, kelas, search) {
+  const body = document.getElementById('rekap-pelanggaran-table-body');
+  body.innerHTML = '';
 
   let filteredStudents = state.students;
   if (kelas) {
     filteredStudents = filteredStudents.filter(s => s.kelas === kelas);
   }
+  if (search) {
+    filteredStudents = filteredStudents.filter(s => s.nama.toLowerCase().includes(search) || s.nisn.includes(search));
+  }
 
   if (filteredStudents.length === 0) {
-    showToast(kelas ? `Data siswa kelas ${kelas} masih kosong.` : 'Data siswa masih kosong. Tidak ada data untuk diekspor.', 'warning');
+    body.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data siswa sesuai filter.</td></tr>`;
+    return;
+  }
+
+  // Filter violation logs of this month & year
+  const prefix = `${tahun}-${bulan}-`;
+  state.violations = state.violations || [];
+  const monthViolations = state.violations.filter(v => v.tanggal.startsWith(prefix));
+
+  let hasData = false;
+
+  filteredStudents.forEach((std) => {
+    const studentViolations = monthViolations.filter(v => v.student_id === std.id).sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+    if (studentViolations.length === 0 && search === '') {
+      return;
+    }
+
+    hasData = true;
+
+    // Build details string
+    let detailsHtml = '<span class="text-muted">Tidak ada pelanggaran</span>';
+    if (studentViolations.length > 0) {
+      detailsHtml = studentViolations.map(v => 
+        `<span class="badge badge-danger" style="margin: 2px;" title="${v.keterangan}">${formatLocalDate(v.tanggal)} (${v.jam}): ${v.keterangan}</span>`
+      ).join(' ');
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${body.children.length + 1}</td>
+      <td class="text-left font-semibold">${std.nama}</td>
+      <td>${std.kelas}</td>
+      <td>${std.nisn}</td>
+      <td class="text-danger font-semibold text-center">${studentViolations.length}x</td>
+      <td class="text-left">${detailsHtml}</td>
+    `;
+    body.appendChild(tr);
+  });
+
+  if (!hasData) {
+    body.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data pelanggaran bulan ini.</td></tr>`;
+  }
+}
+
+// ==========================================================================
+// MENU 5: UNDUH LAPORAN
+// ==========================================================================
+
+// ==========================================================================
+// SUBMENU: UNDUH LAPORAN LOGIC & SINKRONISASI
+// ==========================================================================
+
+let activeLaporanTab = 'absensi';
+
+function toggleLaporanSubmenu(event) {
+  if (event) event.stopPropagation();
+  
+  const submenuGroup = document.getElementById('submenu-laporan-group');
+  const submenu = document.getElementById('sidebar-laporan-submenu');
+  
+  const isCurrentlyOpen = submenuGroup.classList.contains('open');
+  
+  if (isCurrentlyOpen) {
+    submenuGroup.classList.remove('open');
+    if (submenu) submenu.style.display = 'none';
+  } else {
+    submenuGroup.classList.add('open');
+    if (submenu) submenu.style.display = 'flex';
+    switchMenu('laporan');
+  }
+}
+
+function switchLaporanSubmenu(tabName) {
+  switchMenu('laporan');
+  switchLaporanTab(tabName);
+  
+  document.querySelectorAll('.sidebar-submenu .submenu-item').forEach(el => el.classList.remove('active'));
+  const activeSubmenuBtn = document.getElementById(`btn-submenu-laporan-${tabName}`);
+  if (activeSubmenuBtn) activeSubmenuBtn.classList.add('active');
+}
+
+function switchLaporanTab(tabName) {
+  activeLaporanTab = tabName;
+  const buttons = document.querySelectorAll('#view-laporan .tab-button');
+  buttons.forEach(btn => btn.classList.remove('active'));
+  const activeBtn = document.getElementById(`tab-laporan-${tabName}`);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  const contents = document.querySelectorAll('.laporan-tab-content');
+  contents.forEach(c => c.style.display = 'none');
+  const activeContent = document.getElementById(`laporan-tab-${tabName}-content`);
+  if (activeContent) activeContent.style.display = 'block';
+
+  // Highlight the correct submenu-item in the sidebar
+  document.querySelectorAll('.sidebar-submenu .submenu-item').forEach(el => el.classList.remove('active'));
+  const activeSubmenuBtn = document.getElementById(`btn-submenu-laporan-${tabName}`);
+  if (activeSubmenuBtn) activeSubmenuBtn.classList.add('active');
+
+  // Handle defaults
+  handleLaporanScopeChange(tabName === 'absensi' ? 'absen' : tabName);
+  lucide.createIcons();
+}
+
+function handleLaporanScopeChange(reportType) {
+  const scopeSelect = document.getElementById(`laporan-${reportType}-scope`);
+  if (!scopeSelect) return;
+  const scope = scopeSelect.value;
+  
+  const classContainer = document.getElementById(`laporan-${reportType}-kelas-container`);
+  const studentContainer = document.getElementById(`laporan-${reportType}-siswa-container`);
+
+  if (scope === 'semua') {
+    if (classContainer) classContainer.style.display = 'none';
+    if (studentContainer) studentContainer.style.display = 'none';
+  } else if (scope === 'kelas') {
+    if (classContainer) {
+      classContainer.style.display = 'block';
+      if (reportType === 'absen') populateClassSelect('laporan-absen-kelas');
+      else if (reportType === 'terlambat') populateClassSelect('laporan-terlambat-kelas');
+      else if (reportType === 'pelanggaran') populateClassSelect('laporan-pelanggaran-kelas');
+    }
+    if (studentContainer) studentContainer.style.display = 'none';
+  } else if (scope === 'siswa') {
+    if (classContainer) classContainer.style.display = 'none';
+    if (studentContainer) {
+      studentContainer.style.display = 'block';
+      // Reset search inputs
+      document.getElementById(`laporan-${reportType}-siswa-search`).value = '';
+      document.getElementById(`laporan-${reportType}-siswa-id`).value = '';
+      
+      const resultsWrapper = document.getElementById(`laporan-${reportType}-siswa-results-wrapper`);
+      if (resultsWrapper) resultsWrapper.style.display = 'none';
+    }
+  }
+}
+
+function setLaporanScope(reportType, scope) {
+  const scopeInput = document.getElementById(`laporan-${reportType}-scope`);
+  if (scopeInput) scopeInput.value = scope;
+
+  const segmentContainer = document.getElementById(`laporan-${reportType}-scope-segmented`);
+  if (segmentContainer) {
+    segmentContainer.querySelectorAll('.segment-button').forEach(btn => btn.classList.remove('active'));
+    
+    let activeBtnId = `btn-seg-${reportType}-${scope}`;
+    const activeBtn = document.getElementById(activeBtnId);
+    if (activeBtn) activeBtn.classList.add('active');
+  }
+
+  handleLaporanScopeChange(reportType);
+  
+  if (scope === 'siswa') {
+    searchStudentForLaporan(reportType);
+  }
+}
+
+function searchStudentForLaporan(reportType) {
+  const searchInput = document.getElementById(`laporan-${reportType}-siswa-search`);
+  const resultsWrapper = document.getElementById(`laporan-${reportType}-siswa-results-wrapper`);
+  const resultsBody = document.getElementById(`laporan-${reportType}-siswa-results-body`);
+  
+  if (!searchInput || !resultsBody || !resultsWrapper) return;
+  
+  const query = searchInput.value.toLowerCase().trim();
+  
+  let filtered = state.students;
+  if (query) {
+    filtered = state.students.filter(s => 
+      s.nama.toLowerCase().includes(query) || 
+      s.nisn.includes(query) || 
+      s.kelas.toLowerCase().includes(query)
+    );
+  } else {
+    filtered = state.students.slice(0, 5);
+  }
+  
+  resultsBody.innerHTML = '';
+  
+  if (filtered.length === 0) {
+    resultsBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">Siswa tidak ditemukan. Silakan masukkan nama/NISN yang tepat.</td></tr>`;
+    resultsWrapper.style.display = 'block';
+    return;
+  }
+  
+  resultsWrapper.style.display = 'block';
+  
+  const selectedStudentId = document.getElementById(`laporan-${reportType}-siswa-id`).value;
+  
+  filtered.forEach(std => {
+    const tr = document.createElement('tr');
+    tr.id = `row-${reportType}-std-${std.id}`;
+    if (std.id === selectedStudentId) {
+      tr.className = 'selected-row';
+    }
+    
+    tr.style.cursor = 'pointer';
+    tr.onclick = (e) => {
+      if (e.target.closest('button') || e.target.closest('i')) return;
+      
+      document.getElementById(`laporan-${reportType}-siswa-id`).value = std.id;
+      document.getElementById(`laporan-${reportType}-siswa-search`).value = std.nama;
+      
+      resultsBody.querySelectorAll('tr').forEach(r => r.classList.remove('selected-row'));
+      tr.classList.add('selected-row');
+      
+      showToast(`Terpilih: ${std.nama} (${std.kelas})`, 'success');
+    };
+    
+    tr.innerHTML = `
+      <td class="font-semibold text-left">${std.nama}</td>
+      <td><span class="badge badge-success" style="background-color: var(--color-primary-glow); color: var(--color-primary);">${std.kelas}</span></td>
+      <td>${std.nisn}</td>
+      <td class="text-center">
+        <button type="button" class="btn btn-success btn-icon-only btn-sm" onclick="downloadSingleStudentLaporan('${reportType}', '${std.id}', '${std.nama}')" title="Unduh Excel Instan">
+          <i data-lucide="file-spreadsheet"></i>
+        </button>
+      </td>
+    `;
+    resultsBody.appendChild(tr);
+  });
+  
+  lucide.createIcons();
+}
+
+function downloadSingleStudentLaporan(reportType, studentId, studentName) {
+  const origScope = document.getElementById(`laporan-${reportType}-scope`).value;
+  const origStudentId = document.getElementById(`laporan-${reportType}-siswa-id`).value;
+  const origSearch = document.getElementById(`laporan-${reportType}-siswa-search`).value;
+  
+  document.getElementById(`laporan-${reportType}-scope`).value = 'siswa';
+  document.getElementById(`laporan-${reportType}-siswa-id`).value = studentId;
+  document.getElementById(`laporan-${reportType}-siswa-search`).value = studentName;
+  
+  if (reportType === 'absen') {
+    downloadLaporanAbsensi();
+  } else if (reportType === 'terlambat') {
+    downloadLaporanTerlambat();
+  } else if (reportType === 'pelanggaran') {
+    downloadLaporanPelanggaran();
+  }
+  
+  document.getElementById(`laporan-${reportType}-scope`).value = origScope;
+  document.getElementById(`laporan-${reportType}-siswa-id`).value = origStudentId;
+  document.getElementById(`laporan-${reportType}-siswa-search`).value = origSearch;
+}
+
+function downloadLaporanAbsensi() {
+  const bulan = document.getElementById('laporan-absen-bulan').value;
+  const tahun = document.getElementById('laporan-absen-tahun').value;
+  const scope = document.getElementById('laporan-absen-scope').value;
+  const labelBulan = document.getElementById('laporan-absen-bulan').options[document.getElementById('laporan-absen-bulan').selectedIndex].text;
+
+  let filteredStudents = state.students;
+  let titleSuffix = 'Semua_Siswa_Dan_Kelas';
+
+  if (scope === 'kelas') {
+    const kelas = document.getElementById('laporan-absen-kelas').value;
+    if (!kelas) {
+      showToast('Harap pilih kelas terlebih dahulu!', 'warning');
+      return;
+    }
+    filteredStudents = filteredStudents.filter(s => s.kelas === kelas);
+    titleSuffix = `Kelas_${kelas.replace(/\s+/g, '_')}`;
+  } else if (scope === 'siswa') {
+    const studentId = document.getElementById('laporan-absen-siswa-id').value;
+    const searchInput = document.getElementById('laporan-absen-siswa-search').value.trim();
+    if (!studentId) {
+      showToast('Harap pilih siswa terlebih dahulu!', 'warning');
+      return;
+    }
+    filteredStudents = filteredStudents.filter(s => s.id === studentId);
+    titleSuffix = `Siswa_${searchInput.replace(/\s+/g, '_')}`;
+  }
+
+  if (filteredStudents.length === 0) {
+    showToast('Data siswa kosong. Tidak ada data untuk diekspor.', 'warning');
     return;
   }
 
@@ -1419,8 +1873,7 @@ function downloadLaporanAbsensi() {
       XLSX.utils.book_append_sheet(wb, wsLog, 'Rincian Absensi Harian');
     }
 
-    const fileKelasSuffix = kelas ? `_${kelas.replace(/\s+/g, '_')}` : '_Semua_Kelas';
-    XLSX.writeFile(wb, `Laporan_Absensi_Siswa${fileKelasSuffix}_${labelBulan}_${tahun}.xlsx`);
+    XLSX.writeFile(wb, `Laporan_Absensi_${titleSuffix}_${labelBulan}_${tahun}.xlsx`);
     showToast('Laporan absensi berhasil diunduh!', 'success');
   } catch (error) {
     showToast(`Gagal mengekspor laporan: ${error.message}`, 'error');
@@ -1432,10 +1885,33 @@ function downloadLaporanAbsensi() {
 function downloadLaporanTerlambat() {
   const bulan = document.getElementById('laporan-terlambat-bulan').value;
   const tahun = document.getElementById('laporan-terlambat-tahun').value;
+  const scope = document.getElementById('laporan-terlambat-scope').value;
   const labelBulan = document.getElementById('laporan-terlambat-bulan').options[document.getElementById('laporan-terlambat-bulan').selectedIndex].text;
 
-  if (state.students.length === 0) {
-    showToast('Data siswa masih kosong. Tidak ada data untuk diekspor.', 'warning');
+  let filteredStudents = state.students;
+  let titleSuffix = 'Semua_Siswa_Dan_Kelas';
+
+  if (scope === 'kelas') {
+    const kelas = document.getElementById('laporan-terlambat-kelas').value;
+    if (!kelas) {
+      showToast('Harap pilih kelas terlebih dahulu!', 'warning');
+      return;
+    }
+    filteredStudents = filteredStudents.filter(s => s.kelas === kelas);
+    titleSuffix = `Kelas_${kelas.replace(/\s+/g, '_')}`;
+  } else if (scope === 'siswa') {
+    const studentId = document.getElementById('laporan-terlambat-siswa-id').value;
+    const searchInput = document.getElementById('laporan-terlambat-siswa-search').value.trim();
+    if (!studentId) {
+      showToast('Harap pilih siswa terlebih dahulu!', 'warning');
+      return;
+    }
+    filteredStudents = filteredStudents.filter(s => s.id === studentId);
+    titleSuffix = `Siswa_${searchInput.replace(/\s+/g, '_')}`;
+  }
+
+  if (filteredStudents.length === 0) {
+    showToast('Data siswa kosong. Tidak ada data untuk diekspor.', 'warning');
     return;
   }
 
@@ -1443,9 +1919,10 @@ function downloadLaporanTerlambat() {
 
   try {
     const prefix = `${tahun}-${bulan}-`;
-    const monthLates = state.lateLogs.filter(l => l.tanggal.startsWith(prefix));
+    const studentIds = new Set(filteredStudents.map(s => s.id));
+    const monthLates = state.lateLogs.filter(l => l.tanggal.startsWith(prefix) && studentIds.has(l.student_id));
 
-    // 1. Sheet 1: Rincian Log Keterlambatan (dengan Tanggal, Jam, Keterangan)
+    // 1. Sheet 1: Rincian Log Keterlambatan
     const logData = monthLates.map((log, idx) => {
       const std = state.students.find(s => s.id === log.student_id) || { nama: 'Siswa Terhapus', kelas: '-', nisn: '-' };
       return {
@@ -1460,7 +1937,7 @@ function downloadLaporanTerlambat() {
     }).sort((a, b) => a.Tanggal.localeCompare(b.Tanggal));
 
     // 2. Sheet 2: Rekap Frekuensi Terlambat
-    const rekapData = state.students.map((std, idx) => {
+    const rekapData = filteredStudents.map((std, idx) => {
       const freq = monthLates.filter(l => l.student_id === std.id).length;
       return {
         'No': idx + 1,
@@ -1472,7 +1949,7 @@ function downloadLaporanTerlambat() {
     }).filter(row => row['Frekuensi Terlambat (Kali)'] > 0);
 
     if (logData.length === 0 && rekapData.length === 0) {
-      showToast(`Tidak ada catatan siswa terlambat pada bulan ${labelBulan} ${tahun}. Laporan kosong.`, 'warning');
+      showToast(`Tidak ada catatan siswa terlambat untuk filter terpilih pada bulan ${labelBulan} ${tahun}.`, 'warning');
       toggleLoader(false);
       return;
     }
@@ -1484,11 +1961,107 @@ function downloadLaporanTerlambat() {
       XLSX.utils.book_append_sheet(wb, wsLog, 'Rincian Siswa Terlambat');
     }
 
-    const wsRekap = XLSX.utils.json_to_sheet(rekapData);
-    XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekap Frekuensi Terlambat');
+    if (rekapData.length > 0) {
+      const wsRekap = XLSX.utils.json_to_sheet(rekapData);
+      XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekap Frekuensi Terlambat');
+    }
 
-    XLSX.writeFile(wb, `Laporan_Keterlambatan_Siswa_${labelBulan}_${tahun}.xlsx`);
+    XLSX.writeFile(wb, `Laporan_Keterlambatan_${titleSuffix}_${labelBulan}_${tahun}.xlsx`);
     showToast('Laporan keterlambatan berhasil diunduh!', 'success');
+  } catch (error) {
+    showToast(`Gagal mengekspor laporan: ${error.message}`, 'error');
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+function downloadLaporanPelanggaran() {
+  const bulan = document.getElementById('laporan-pelanggaran-bulan').value;
+  const tahun = document.getElementById('laporan-pelanggaran-tahun').value;
+  const scope = document.getElementById('laporan-pelanggaran-scope').value;
+  const labelBulan = document.getElementById('laporan-pelanggaran-bulan').options[document.getElementById('laporan-pelanggaran-bulan').selectedIndex].text;
+
+  let filteredStudents = state.students;
+  let titleSuffix = 'Semua_Siswa_Dan_Kelas';
+
+  if (scope === 'kelas') {
+    const kelas = document.getElementById('laporan-pelanggaran-kelas').value;
+    if (!kelas) {
+      showToast('Harap pilih kelas terlebih dahulu!', 'warning');
+      return;
+    }
+    filteredStudents = filteredStudents.filter(s => s.kelas === kelas);
+    titleSuffix = `Kelas_${kelas.replace(/\s+/g, '_')}`;
+  } else if (scope === 'siswa') {
+    const studentId = document.getElementById('laporan-pelanggaran-siswa-id').value;
+    const searchInput = document.getElementById('laporan-pelanggaran-siswa-search').value.trim();
+    if (!studentId) {
+      showToast('Harap pilih siswa terlebih dahulu!', 'warning');
+      return;
+    }
+    filteredStudents = filteredStudents.filter(s => s.id === studentId);
+    titleSuffix = `Siswa_${searchInput.replace(/\s+/g, '_')}`;
+  }
+
+  if (filteredStudents.length === 0) {
+    showToast('Data siswa kosong. Tidak ada data untuk diekspor.', 'warning');
+    return;
+  }
+
+  toggleLoader(true, 'Menyusun laporan pelanggaran...');
+
+  try {
+    const prefix = `${tahun}-${bulan}-`;
+    state.violations = state.violations || [];
+    const studentIds = new Set(filteredStudents.map(s => s.id));
+    const monthViolations = state.violations.filter(v => v.tanggal.startsWith(prefix) && studentIds.has(v.student_id));
+
+    // 1. Sheet 1: Rincian Log Pelanggaran
+    const logData = monthViolations.map((log, idx) => {
+      const std = state.students.find(s => s.id === log.student_id) || { nama: 'Siswa Terhapus', kelas: '-', nisn: '-' };
+      return {
+        'No': idx + 1,
+        'Tanggal': formatLocalDate(log.tanggal),
+        'Nama Siswa': std.nama,
+        'Kelas': std.kelas,
+        'NISN': std.nisn,
+        'Jam': log.jam,
+        'Keterangan Pelanggaran': log.keterangan || '-'
+      };
+    }).sort((a, b) => a.Tanggal.localeCompare(b.Tanggal));
+
+    // 2. Sheet 2: Rekap Frekuensi Pelanggaran
+    const rekapData = filteredStudents.map((std, idx) => {
+      const freq = monthViolations.filter(v => v.student_id === std.id).length;
+      return {
+        'No': idx + 1,
+        'Nama Siswa': std.nama,
+        'Kelas': std.kelas,
+        'NISN': std.nisn,
+        'Jumlah Pelanggaran': freq
+      };
+    }).filter(row => row['Jumlah Pelanggaran'] > 0);
+
+    if (logData.length === 0 && rekapData.length === 0) {
+      showToast(`Tidak ada catatan pelanggaran siswa untuk filter terpilih pada bulan ${labelBulan} ${tahun}.`, 'warning');
+      toggleLoader(false);
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+    
+    if (logData.length > 0) {
+      const wsLog = XLSX.utils.json_to_sheet(logData);
+      XLSX.utils.book_append_sheet(wb, wsLog, 'Rincian Pelanggaran');
+    }
+
+    if (rekapData.length > 0) {
+      const wsRekap = XLSX.utils.json_to_sheet(rekapData);
+      XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekap Frekuensi Pelanggaran');
+    }
+
+    XLSX.writeFile(wb, `Laporan_Pelanggaran_${titleSuffix}_${labelBulan}_${tahun}.xlsx`);
+    showToast('Laporan pelanggaran berhasil diunduh!', 'success');
   } catch (error) {
     showToast(`Gagal mengekspor laporan: ${error.message}`, 'error');
   } finally {
@@ -1531,6 +2104,13 @@ function renderDashboard() {
   const todayLates = state.lateLogs.filter(l => l.tanggal === todayISO);
   document.getElementById('dash-total-terlambat').textContent = todayLates.length;
   document.getElementById('dash-terlambat-subtext').textContent = `${todayLates.length} siswa terlambat hari ini`;
+
+  // Today's violations
+  const todayViolations = state.violations ? state.violations.filter(v => v.tanggal === todayISO) : [];
+  const totalViolationsEl = document.getElementById('dash-total-pelanggaran');
+  if (totalViolationsEl) totalViolationsEl.textContent = todayViolations.length;
+  const subViolationsEl = document.getElementById('dash-pelanggaran-subtext');
+  if (subViolationsEl) subViolationsEl.textContent = `${todayViolations.length} kasus pelanggaran hari ini`;
 
   // Render Charts
   renderDashboardCharts(hadir, sakit, izin, alpha);
