@@ -56,6 +56,13 @@
       "tanggal": "2026-06-06",
       "jam": "23:20",
       "keterangan": "ban bocor"
+    },
+    {
+      "id": "late_1780767441199_370",
+      "student_id": "1023456789",
+      "tanggal": "2026-05-06",
+      "jam": "00:31",
+      "keterangan": "sakit perut"
     }
   ],
   "violations": [
