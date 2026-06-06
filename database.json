@@ -49,6 +49,13 @@
       "tanggal": "2026-06-06",
       "jam": "02:04",
       "keterangan": "Bocor"
+    },
+    {
+      "id": "late_1780782572990_897",
+      "student_id": "1054321678",
+      "tanggal": "2026-06-06",
+      "jam": "04:48",
+      "keterangan": "Perut sakit"
     }
   ],
   "violations": [],
