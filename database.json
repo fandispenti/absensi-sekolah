@@ -42,6 +42,14 @@
       "keterangan": ""
     }
   ],
-  "lateLogs": [],
+  "lateLogs": [
+    {
+      "id": "late_1780772695880_756",
+      "student_id": "1023456789",
+      "tanggal": "2026-06-06",
+      "jam": "02:04",
+      "keterangan": "Bocor"
+    }
+  ],
   "violations": []
 }
