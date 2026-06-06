@@ -51,5 +51,15 @@
       "keterangan": "Bocor"
     }
   ],
-  "violations": []
+  "violations": [],
+  "izinPulang": [
+    {
+      "id": "izin_1780775672497_455",
+      "student_id": "1023456789",
+      "tanggal": "2026-06-06",
+      "jam": "02:53",
+      "keterangan": "sakit",
+      "guru_piket": "ucok"
+    }
+  ]
 }
