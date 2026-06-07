@@ -79,7 +79,15 @@
       "keterangan": "Perut sakit"
     }
   ],
-  "violations": [],
+  "violations": [
+    {
+      "id": "violation_1780809232244_69",
+      "student_id": "1023456789",
+      "tanggal": "2026-06-07",
+      "jam": "12:13",
+      "keterangan": "Merokok"
+    }
+  ],
   "izinPulang": [
     {
       "id": "izin_1780775672497_455",
