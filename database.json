@@ -40,6 +40,27 @@
       "tanggal": "2026-06-06",
       "status": "hadir",
       "keterangan": ""
+    },
+    {
+      "id": "2026-06-07_1023456789",
+      "student_id": "1023456789",
+      "tanggal": "2026-06-07",
+      "status": "hadir",
+      "keterangan": ""
+    },
+    {
+      "id": "2026-06-07_1098765432",
+      "student_id": "1098765432",
+      "tanggal": "2026-06-07",
+      "status": "hadir",
+      "keterangan": ""
+    },
+    {
+      "id": "2026-06-07_1054321678",
+      "student_id": "1054321678",
+      "tanggal": "2026-06-07",
+      "status": "hadir",
+      "keterangan": ""
     }
   ],
   "lateLogs": [
