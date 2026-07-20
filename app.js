@@ -21,6 +21,77 @@ let state = {
   githubSha: ''         // GitHub file SHA for updates
 };
 
+// --- RBAC & Login Logic ---
+function handleLoginSubmit(event) {
+  event.preventDefault();
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+  const errorMsg = document.getElementById('login-error');
+
+  let role = null;
+  if (username === 'admin' && password === 'admin') role = 'admin';
+  else if (username === 'guru' && password === 'guru') role = 'guru';
+  else if (username === 'osis' && password === 'osis') role = 'osis';
+
+  if (role) {
+    localStorage.setItem('userRole', role);
+    errorMsg.style.display = 'none';
+    document.getElementById('login-modal').style.display = 'none';
+    document.getElementById('app-main-container').style.display = 'flex';
+    applyRolePermissions(role);
+  } else {
+    errorMsg.style.display = 'block';
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('userRole');
+  window.location.reload();
+}
+
+function applyRolePermissions(role) {
+  // Hide all menus first, then show based on role
+  const allMenus = [
+    'btn-menu-dashboard', 'btn-menu-upload', 'btn-menu-absensi',
+    'btn-menu-terlambat', 'btn-menu-pelanggaran', 'btn-menu-izin-pulang',
+    'btn-menu-rekap', 'submenu-laporan-group', 'btn-menu-github'
+  ];
+  
+  allMenus.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  const ortuLink = document.querySelector('a[href="ortu.html"]');
+  if (ortuLink) ortuLink.style.display = 'none';
+
+  let initialMenu = 'dashboard';
+
+  if (role === 'admin') {
+    allMenus.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+    });
+    if (ortuLink) ortuLink.style.display = 'flex';
+    initialMenu = 'dashboard';
+  } else if (role === 'guru') {
+    ['btn-menu-absensi', 'btn-menu-terlambat', 'btn-menu-pelanggaran', 'btn-menu-izin-pulang'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+    });
+    initialMenu = 'absensi';
+  } else if (role === 'osis') {
+    ['btn-menu-terlambat'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+    });
+    initialMenu = 'terlambat';
+  }
+
+  // Switch to the initial menu
+  switchMenu(initialMenu);
+}
+
 // --- Initializer ---
 document.addEventListener('DOMContentLoaded', () => {
   // Check URL parameters for GitHub Auto-Config
@@ -35,9 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load Saved Settings and Data
   loadSettings();
   loadData();
-
-  // Switch to initial view
-  switchMenu('dashboard');
 
   // Trigger Lucide Icons rendering
   lucide.createIcons();
@@ -65,6 +133,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Setup Drag & Drop for Excel Upload
   setupDragAndDrop();
+
+  // Check Login State
+  const role = localStorage.getItem('userRole');
+  if (role) {
+    document.getElementById('login-modal').style.display = 'none';
+    document.getElementById('app-main-container').style.display = 'flex';
+    applyRolePermissions(role);
+  } else {
+    document.getElementById('login-modal').style.display = 'flex';
+    document.getElementById('app-main-container').style.display = 'none';
+  }
 });
 
 function checkUrlParamsForConfig() {

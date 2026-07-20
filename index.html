@@ -17,8 +17,41 @@
 </head>
 <body class="dark-theme">
 
+  <!-- Login Modal -->
+  <div id="login-modal" class="login-modal-overlay">
+    <div class="login-modal-content dashboard-card">
+      <div class="text-center mb-4">
+        <img src="logo.png" alt="Logo SMPN 3 Batam" style="width: 80px; height: auto; margin-bottom: 10px;">
+        <h2>Login Sistem</h2>
+        <p class="text-muted">Absensi & Keterlambatan Murid</p>
+      </div>
+      <form id="form-login" onsubmit="handleLoginSubmit(event)">
+        <div class="form-group mb-3">
+          <label for="login-username">Username</label>
+          <div class="search-box" style="margin-top: 5px;">
+            <i data-lucide="user"></i>
+            <input type="text" id="login-username" required placeholder="Masukkan username">
+          </div>
+        </div>
+        <div class="form-group mb-4">
+          <label for="login-password">Password</label>
+          <div class="search-box" style="margin-top: 5px;">
+            <i data-lucide="lock"></i>
+            <input type="password" id="login-password" required placeholder="Masukkan password">
+          </div>
+        </div>
+        <div id="login-error" class="text-danger mb-3 text-center" style="display: none; font-size: 0.9em;">
+          Username atau password salah!
+        </div>
+        <button type="submit" class="btn btn-primary w-100 btn-lg">
+          <i data-lucide="log-in"></i> Masuk
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- Main Container -->
-  <div class="app-container">
+  <div class="app-container" id="app-main-container" style="display: none;">
     
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
@@ -91,6 +124,10 @@
         <button class="menu-item" id="btn-menu-github" onclick="switchMenu('github')">
           <i data-lucide="database"></i>
           <span>Pengaturan Database</span>
+        </button>
+        <button class="menu-item text-danger" id="btn-menu-logout" onclick="handleLogout()" style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+          <i data-lucide="log-out"></i>
+          <span>Keluar (Logout)</span>
         </button>
         <div class="sync-badge-container">
           <div id="sync-status-indicator" class="sync-status status-offline">

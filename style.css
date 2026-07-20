@@ -1519,3 +1519,35 @@ button, input, select, textarea {
   justify-content: center;
 }
 
+/* ==========================================================================
+   LOGIN MODAL STYLES
+   ========================================================================== */
+.login-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bg-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.login-modal-content {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px;
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-color);
+}
+
+.login-modal-content h2 {
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-color);
+  margin-bottom: 5px;
+}
+
