@@ -13,8 +13,31 @@
       "kelas": "10A"
     }
   ],
-  "attendance": [],
-  "lateLogs": [],
+  "attendance": [
+    {
+      "id": "2026-07-20_12345678",
+      "student_id": "12345678",
+      "tanggal": "2026-07-20",
+      "status": "alpha",
+      "keterangan": "cabut"
+    },
+    {
+      "id": "2026-07-20_12345679",
+      "student_id": "12345679",
+      "tanggal": "2026-07-20",
+      "status": "hadir",
+      "keterangan": ""
+    }
+  ],
+  "lateLogs": [
+    {
+      "id": "late_1784585147455_814",
+      "student_id": "12345678",
+      "tanggal": "2026-07-20",
+      "jam": "05:05",
+      "keterangan": "macet"
+    }
+  ],
   "violations": [
     {
       "id": "violation_1780809365944_611",
@@ -22,6 +45,13 @@
       "tanggal": "2026-06-07",
       "jam": "12:14",
       "keterangan": "Merokok"
+    },
+    {
+      "id": "violation_1784585446869_971",
+      "student_id": "12345678",
+      "tanggal": "2026-07-20",
+      "jam": "05:10",
+      "keterangan": "cabut"
     }
   ],
   "izinPulang": [
