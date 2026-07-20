@@ -1,12 +1,6 @@
 {
   "students": [
     {
-      "id": "12345678",
-      "nama": "Budi Santoso",
-      "nisn": "12345678",
-      "kelas": "10A"
-    },
-    {
       "id": "12345679",
       "nama": "Siti Aminah",
       "nisn": "12345679",
@@ -15,13 +9,6 @@
   ],
   "attendance": [
     {
-      "id": "2026-07-20_12345678",
-      "student_id": "12345678",
-      "tanggal": "2026-07-20",
-      "status": "alpha",
-      "keterangan": "cabut"
-    },
-    {
       "id": "2026-07-20_12345679",
       "student_id": "12345679",
       "tanggal": "2026-07-20",
@@ -29,15 +16,7 @@
       "keterangan": ""
     }
   ],
-  "lateLogs": [
-    {
-      "id": "late_1784585147455_814",
-      "student_id": "12345678",
-      "tanggal": "2026-07-20",
-      "jam": "05:05",
-      "keterangan": "macet"
-    }
-  ],
+  "lateLogs": [],
   "violations": [
     {
       "id": "violation_1780809365944_611",
