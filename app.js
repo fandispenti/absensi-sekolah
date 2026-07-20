@@ -135,14 +135,21 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDragAndDrop();
 
   // Check Login State
-  const role = localStorage.getItem('userRole');
+  let role = localStorage.getItem('userRole');
+  const path = window.location.pathname;
+  if (path.includes('guru.html')) role = 'guru';
+  if (path.includes('ortu.html')) role = 'ortu';
+
+  const loginModal = document.getElementById('login-modal');
+  const appContainer = document.getElementById('app-main-container');
+
   if (role) {
-    document.getElementById('login-modal').style.display = 'none';
-    document.getElementById('app-main-container').style.display = 'flex';
+    if (loginModal) loginModal.style.display = 'none';
+    if (appContainer) appContainer.style.display = 'flex';
     applyRolePermissions(role);
   } else {
-    document.getElementById('login-modal').style.display = 'flex';
-    document.getElementById('app-main-container').style.display = 'none';
+    if (loginModal) loginModal.style.display = 'flex';
+    if (appContainer) appContainer.style.display = 'none';
   }
 });
 
