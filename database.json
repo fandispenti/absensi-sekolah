@@ -14,7 +14,15 @@
     }
   ],
   "attendance": [],
-  "lateLogs": [],
+  "lateLogs": [
+    {
+      "id": "late_1784585147455_814",
+      "student_id": "12345678",
+      "tanggal": "2026-07-20",
+      "jam": "05:05",
+      "keterangan": "macet"
+    }
+  ],
   "violations": [
     {
       "id": "violation_1780809365944_611",
