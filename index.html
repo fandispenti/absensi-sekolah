@@ -21,27 +21,29 @@
   <div id="login-modal" class="login-modal-overlay">
     <div class="login-modal-content dashboard-card">
       <div class="text-center mb-4">
-        <img src="logo.png" alt="Logo SMPN 3 Batam" style="width: 80px; height: auto; margin-bottom: 10px;">
-        <h2>Login Sistem</h2>
-        <p class="text-muted">Absensi & Keterlambatan Murid</p>
+        <div class="login-logo-container">
+          <img src="logo.png" alt="Logo SMPN 3 Batam" class="login-logo">
+        </div>
+        <h2 class="login-title">Login Sistem</h2>
+        <p class="text-muted login-subtitle">Absensi & Keterlambatan Murid</p>
       </div>
       <form id="form-login" onsubmit="handleLoginSubmit(event)">
         <div class="form-group mb-3">
-          <label for="login-username">Username</label>
-          <div class="search-box" style="margin-top: 5px;">
+          <label for="login-username" class="login-label">Username</label>
+          <div class="login-input-group">
             <i data-lucide="user"></i>
             <input type="text" id="login-username" required placeholder="Masukkan username">
           </div>
         </div>
         <div class="form-group mb-4">
-          <label for="login-password">Password</label>
-          <div class="search-box" style="margin-top: 5px;">
+          <label for="login-password" class="login-label">Password</label>
+          <div class="login-input-group">
             <i data-lucide="lock"></i>
             <input type="password" id="login-password" required placeholder="Masukkan password">
           </div>
         </div>
-        <div id="login-error" class="text-danger mb-3 text-center" style="display: none; font-size: 0.9em;">
-          Username atau password salah!
+        <div id="login-error" class="text-danger mb-3 text-center" style="display: none; font-size: 0.9em; font-weight: 500;">
+          <i data-lucide="alert-circle" class="v-middle mr-1" style="width: 16px; height: 16px;"></i> Username atau password salah!
         </div>
         <button type="submit" class="btn btn-primary w-100 btn-lg">
           <i data-lucide="log-in"></i> Masuk
