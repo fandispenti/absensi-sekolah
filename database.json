@@ -13,7 +13,22 @@
       "kelas": "10A"
     }
   ],
-  "attendance": [],
+  "attendance": [
+    {
+      "id": "2026-07-20_12345678",
+      "student_id": "12345678",
+      "tanggal": "2026-07-20",
+      "status": "alpha",
+      "keterangan": "cabut"
+    },
+    {
+      "id": "2026-07-20_12345679",
+      "student_id": "12345679",
+      "tanggal": "2026-07-20",
+      "status": "hadir",
+      "keterangan": ""
+    }
+  ],
   "lateLogs": [
     {
       "id": "late_1784585147455_814",
