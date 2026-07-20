@@ -1,12 +1,6 @@
 {
   "students": [
     {
-      "id": "1023456789",
-      "nama": "Budi Santoso",
-      "nisn": "1023456789",
-      "kelas": "VII"
-    },
-    {
       "id": "1098765432",
       "nama": "Siti Rahma",
       "nisn": "1098765432",
@@ -21,13 +15,6 @@
   ],
   "attendance": [
     {
-      "id": "2026-06-06_1023456789",
-      "student_id": "1023456789",
-      "tanggal": "2026-06-06",
-      "status": "alpha",
-      "keterangan": ""
-    },
-    {
       "id": "2026-06-06_1098765432",
       "student_id": "1098765432",
       "tanggal": "2026-06-06",
@@ -38,13 +25,6 @@
       "id": "2026-06-06_1054321678",
       "student_id": "1054321678",
       "tanggal": "2026-06-06",
-      "status": "hadir",
-      "keterangan": ""
-    },
-    {
-      "id": "2026-06-07_1023456789",
-      "student_id": "1023456789",
-      "tanggal": "2026-06-07",
       "status": "hadir",
       "keterangan": ""
     },
@@ -63,13 +43,6 @@
       "keterangan": ""
     },
     {
-      "id": "2026-07-19_1023456789",
-      "student_id": "1023456789",
-      "tanggal": "2026-07-19",
-      "status": "hadir",
-      "keterangan": ""
-    },
-    {
       "id": "2026-07-19_1098765432",
       "student_id": "1098765432",
       "tanggal": "2026-07-19",
@@ -80,13 +53,6 @@
       "id": "2026-07-19_1054321678",
       "student_id": "1054321678",
       "tanggal": "2026-07-19",
-      "status": "hadir",
-      "keterangan": ""
-    },
-    {
-      "id": "2026-07-20_1023456789",
-      "student_id": "1023456789",
-      "tanggal": "2026-07-20",
       "status": "hadir",
       "keterangan": ""
     },
@@ -106,13 +72,6 @@
     }
   ],
   "lateLogs": [
-    {
-      "id": "late_1780772695880_756",
-      "student_id": "1023456789",
-      "tanggal": "2026-06-06",
-      "jam": "02:04",
-      "keterangan": "Bocor"
-    },
     {
       "id": "late_1780782572990_897",
       "student_id": "1054321678",
