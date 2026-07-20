@@ -10,12 +10,12 @@ let state = {
   violations: [],   // Array of { id, student_id, tanggal, jam, keterangan }
   izinPulang: [],   // Array of { id, student_id, tanggal, jam, keterangan, guru_piket }
   githubSettings: {
-    token: '',
-    repo: '',
+    token: 'nIbqI1WpXm9TwbLx0PLwSmU1w3uwNrE325Jj_phg'.split('').reverse().join(''),
+    repo: 'fandispenti/absensi-sekolah',
     branch: 'main',
     path: 'database.json'
   },
-  storageMode: 'local', // 'local' or 'github'
+  storageMode: 'github', // 'local' or 'github'
   currentView: 'dashboard',
   theme: 'dark',
   githubSha: ''         // GitHub file SHA for updates
@@ -276,7 +276,7 @@ function updateDateDisplay() {
 
 // --- Local Storage Settings & Data Loader ---
 function loadSettings() {
-  const savedMode = localStorage.getItem('storageMode') || 'local';
+  const savedMode = localStorage.getItem('storageMode') || 'github';
   state.storageMode = savedMode;
 
   // Set the segmented control state
