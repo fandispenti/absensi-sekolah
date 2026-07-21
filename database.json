@@ -19,7 +19,22 @@
       "kelas": "XI TKJ 2"
     }
   ],
-  "attendance": [],
+  "attendance": [
+    {
+      "id": "2026-07-21_1023456789",
+      "student_id": "1023456789",
+      "tanggal": "2026-07-21",
+      "status": "hadir",
+      "keterangan": ""
+    },
+    {
+      "id": "2026-07-21_1098765432",
+      "student_id": "1098765432",
+      "tanggal": "2026-07-21",
+      "status": "hadir",
+      "keterangan": ""
+    }
+  ],
   "lateLogs": [],
   "violations": [
     {
