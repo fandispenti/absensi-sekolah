@@ -1,12 +1,6 @@
 {
   "students": [
     {
-      "id": "1023456789",
-      "nama": "Budi Santoso",
-      "nisn": "1023456789",
-      "kelas": "X RPL 1"
-    },
-    {
       "id": "1098765432",
       "nama": "Siti Rahma",
       "nisn": "1098765432",
@@ -21,13 +15,6 @@
   ],
   "attendance": [
     {
-      "id": "2026-07-21_1023456789",
-      "student_id": "1023456789",
-      "tanggal": "2026-07-21",
-      "status": "hadir",
-      "keterangan": ""
-    },
-    {
       "id": "2026-07-21_1098765432",
       "student_id": "1098765432",
       "tanggal": "2026-07-21",
@@ -35,15 +22,7 @@
       "keterangan": ""
     }
   ],
-  "lateLogs": [
-    {
-      "id": "late_1784609841182_463",
-      "student_id": "1023456789",
-      "tanggal": "2026-07-21",
-      "jam": "11:56",
-      "keterangan": "ban bocor"
-    }
-  ],
+  "lateLogs": [],
   "violations": [
     {
       "id": "violation_1780809365944_611",
